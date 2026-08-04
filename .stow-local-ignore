@@ -1,0 +1,14 @@
+# Replaces Stow's built-in ignore list entirely, so the defaults we still
+# want are repeated here. Anything matched is NOT symlinked into $HOME.
+
+# Repo metadata (Stow defaults)
+\.git
+\.gitignore
+^/README.*
+^/LICENSE.*
+^/COPYING
+.+~
+\#.*\#
+
+# Repo-only files — records and docs, not config to install
+^/packages\.txt$
