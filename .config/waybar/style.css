@@ -1,0 +1,146 @@
+@import "../omarchy/current/theme/waybar.css";
+
+/* Darkens the bar to a Tailwind-950 level, but ONLY for dark themes - a light
+   theme's dark foreground would be unreadable on it. Regenerated on every theme
+   change by ~/.config/omarchy/hooks/theme-set.d/20-waybar-theme-override */
+@import "theme-override.css";
+
+* {
+  background-color: @background;
+  color: @foreground;
+
+  border: none;
+  border-radius: 0;
+  min-height: 0;
+  font-family: 'JetBrainsMono Nerd Font';
+  font-size: 12px;
+}
+
+.modules-left {
+  margin-left: 8px;
+}
+
+.modules-right {
+  margin-right: 8px;
+}
+
+#workspaces button {
+  all: initial;
+  padding: 0 6px;
+  margin: 0 1.5px;
+  min-width: 9px;
+}
+
+#workspaces button.empty {
+  opacity: 0.5;
+}
+
+#cpu,
+#battery,
+#pulseaudio,
+#custom-omarchy,
+#custom-update {
+  min-width: 12px;
+  margin: 0 7.5px;
+}
+
+/* Right-hand icon cluster: uniform PITCH, not uniform ink gaps.
+   ---------------------------------------------------------------------------
+   These icons change with status, and the replacement glyphs are not the same
+   width. Measured ink widths at the real render size (24 physical px):
+
+     pulseaudio  15..28   (muted / volume levels / headphone / headset)
+     weather     15..27   (14 glyphs from omarchy-weather-icon: sun, moon, ...)
+     network     20..24   (5 wifi strengths, ethernet, disconnected)
+     bluetooth   12..18   (on / off / connected)
+     apexshot    23       cpu 18       expand-icon 12
+
+   So tuning margins for equal gaps between the CURRENT icons is self-defeating:
+   swap the sun for a moon (+6px) or the speaker for headphones (+13px) and every
+   neighbouring gap shifts. There is no static margin set that equalises ink gaps
+   across all combinations.
+
+   Instead every module gets an identical box wider than the widest glyph it can
+   ever show (28 physical = 16.8 logical, so 18px), plus equal margins. The boxes
+   then form a fixed grid and each glyph is centred in its cell, so icon centres
+   stay evenly spaced no matter which state each module is in. Pitch is
+   18 + 2*5.7 = 29.4px, chosen to match the cluster's previous overall width.
+
+   Do not add per-module margins here -- that reintroduces state-dependent drift. */
+#custom-apexshot,
+#custom-weather,
+#bluetooth,
+#network,
+#pulseaudio,
+#cpu,
+#battery {
+  min-width: 18px;
+  margin: 0 5.7px;
+  padding: 0;
+}
+
+#tray {
+  margin-right: 16px;
+}
+
+#custom-expand-icon {
+  margin: 0 5.7px;
+  min-width: 18px;
+}
+
+tooltip {
+  padding: 2px;
+}
+
+#custom-update {
+  font-size: 10px;
+}
+
+#clock {
+  margin-left: 8.75px;
+}
+
+/* Sits between #clock and #custom-update. Left margin only: #custom-update carries
+   its own margin, so a right margin here would double the gap on that side. */
+#custom-calendar {
+  min-width: 12px;
+  margin: 0 0 0 7.5px;
+}
+
+#custom-weather.unavailable {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.hidden {
+  opacity: 0;
+}
+
+#custom-screenrecording-indicator,
+#custom-idle-indicator,
+#custom-notification-silencing-indicator {
+  min-width: 12px;
+  margin-left: 5px;
+  margin-right: 0;
+  font-size: 10px;
+  padding-bottom: 1px;
+}
+
+#custom-screenrecording-indicator.active {
+  color: #a55555;
+}
+
+#custom-idle-indicator.active,
+#custom-notification-silencing-indicator.active {
+  color: #a55555;
+}
+
+#custom-voxtype {
+  min-width: 12px;
+  margin: 0 0 0 7.5px;
+}
+
+#custom-voxtype.recording {
+  color: #a55555;
+}
