@@ -11,6 +11,17 @@ source ~/.local/share/omarchy/default/bash/rc
 # alias p='python'
 
 # ---------------------------------------------------------
+# ⌨️  Shell behavior
+# ---------------------------------------------------------
+
+# Disable history expansion. Bash otherwise treats a leading `!` as "rerun the
+# last command starting with ...", which silently rewrites pasted commands and
+# also mangles `!` inside double quotes (git commit -m "fixed!").
+# Trade-off: `!!` and `!$` stop working. Use Alt+. for the previous argument
+# (readline, unaffected) and `sudo $(fc -ln -1)` to re-run the last command.
+set +H
+
+# ---------------------------------------------------------
 # ☁️  AWS
 # ---------------------------------------------------------
 
