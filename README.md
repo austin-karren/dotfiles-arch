@@ -67,6 +67,7 @@ Since this repo installs the latter, a stray `~/.gitconfig` is ignored entirely.
 | `.config/zed/` | Editor + agent settings |
 | `.config/git/config` | Aliases, delta pager, zdiff3, rerere |
 | `.config/uwsm/` | Session env (incl. making snap apps visible to walker) |
+| `.config/omarchy/extensions/menu.sh` | Omarchy menu overrides — the sanctioned extension point, not a patched Omarchy file |
 | `.config/starship.toml`, `.config/tmux/` | Prompt and multiplexer |
 | `.bashrc` | Thin — sources Omarchy's `default/bash/rc` |
 | `.local/bin/` | Scripts a keybinding or bar module depends on: `close-surface`, `window-resize`, `float-snap`, `ratio-toggle`. The rest of `~/.local/bin` is untracked — see the to-do |

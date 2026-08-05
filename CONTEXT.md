@@ -73,7 +73,7 @@ _Avoid_: the menu, main menu
 **Toggle Menu**:
 One submenu of the Omarchy Menu, reachable directly at `SUPER+CTRL+O`. Holds the
 on/off switches: Screensaver, Nightlight, Idle, Notifications, Bar, Layout,
-1-Window Ratio, Gaps.
+1-Window Zen Ratio, Gaps.
 _Avoid_: options menu, settings, toggles
 
 ## Windows
@@ -90,9 +90,9 @@ feature does, and it is what Omarchy's own notifications say. "Zen ratio" was tr
 a short form and dropped: it read as a separate feature from the one the Toggle Menu
 and the notifications name.
 
-Reachable three ways — the bar module, the Toggle Menu's "1-Window Ratio" entry, and
-`SUPER+CTRL+BACKSPACE` — all driving one flag file. The menu label and its notification
-still say "square" and "Ratio"; those strings live in Omarchy's read-only tree.
+Reachable three ways — the bar module, the Toggle Menu's "1-Window Zen Ratio" entry, and
+`SUPER+CTRL+BACKSPACE` — all calling `ratio-toggle` and driving one flag file. The menu
+entry is a `show_toggle_menu` override in `~/.config/omarchy/extensions/menu.sh`.
 _Avoid_: Ratio, Zen ratio, single window mode, square mode, 1 window ratio
 
 **Pitch** (bar sense):
