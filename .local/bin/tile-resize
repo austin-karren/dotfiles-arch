@@ -1,0 +1,245 @@
+#!/usr/bin/env bash
+#
+# Step the focused TILED window through a Size ladder of screen fractions.
+# Left/up traverse the ladder down, right/down traverse it up. See ADR-0022.
+#
+#   tile-resize left|right|up|down
+#   tile-resize --toggle-mode      # wrap <-> clamp at the ends of the ladder
+#   tile-resize --status
+#
+# WHY THIS IS NOT A ONE-LINER
+#
+# Hyprland offers two primitives, `resizeactive` and `layoutmsg splitratio`, and
+# BOTH move the governing split boundary in a fixed spatial direction rather than
+# relative to the focused window. A positive delta always grows the FIRST child of
+# the split, whoever has focus. Measured on this machine, two tiled windows:
+#
+#   focus left  window, resizeactive +200  ->  left  window 1136 -> 1336  (grew)
+#   focus right window, resizeactive +200  ->  right window 1136 ->  936  (shrank)
+#
+# `layoutmsg splitratio +0.2` behaves identically. So the delta's sign depends on
+# which side of the boundary the focused window sits, and Hyprland does not expose
+# the dwindle tree through hyprctl - there is no way to simply ask.
+#
+# Note also that `layoutmsg splitratio` is DELTA-ONLY: `exact` is rejected with
+# "failed to parse exact as a delta". And `resizeactive exact` is not a way out,
+# because it computes its own delta internally and so inherits the same inversion.
+#
+# THE APPROACH
+#
+# Guess the sign geometrically, then check the result and correct it. The guess is
+# "something is adjacent on my low edge, so I am the second child", which is right
+# for every layout that matters here - two windows, a 2x2 grid, one window beside a
+# stack - and wrong only for a window in the middle of a nested run of columns.
+# Rather than model the tree to catch that case, the move is measured afterwards and
+# a correction issued if it went the wrong way. Common layouts cost one dispatch;
+# the awkward ones cost two and still land correctly.
+
+set -euo pipefail
+
+LADDER=(0.3333 0.5 0.6667)
+LADDER_NAMES=(1/3 1/2 2/3)
+# Wide enough to absorb gaps and rounding, narrow enough that adjacent rungs
+# (1/3 and 1/2 are 0.167 apart) never collide.
+EPS=0.04
+# A landing within this many pixels of target is close enough to skip correcting.
+TOL_PX=12
+
+CLAMP_FLAG="$HOME/.local/state/omarchy/toggles/tile-resize-clamp"
+
+die() {
+  echo "tile-resize: $*" >&2
+  exit 1
+}
+
+settle() { read -t 0.05 -u 9 9<> <(:) || true; }
+
+mode() { [[ -f $CLAMP_FLAG ]] && echo clamp || echo wrap; }
+
+case ${1-} in
+--toggle-mode)
+  if [[ -f $CLAMP_FLAG ]]; then
+    rm -f "$CLAMP_FLAG"
+  else
+    mkdir -p "$(dirname "$CLAMP_FLAG")"
+    : >"$CLAMP_FLAG"
+  fi
+  m=$(mode)
+  command -v notify-send >/dev/null &&
+    notify-send -u low "Tile resize: $m" \
+      "$([[ $m == wrap ]] && echo 'Ladder wraps around at the ends' || echo 'Ladder stops at the ends')"
+  echo "$m"
+  exit 0
+  ;;
+--status)
+  echo "mode=$(mode) ladder=${LADDER_NAMES[*]}"
+  exit 0
+  ;;
+left | right | up | down) dir=$1 ;;
+*) die "usage: tile-resize left|right|up|down | --toggle-mode | --status" ;;
+esac
+
+# left/right act on width, up/down on height. Picking the axis from the key is what
+# keeps this predictable: a horizontal key never changes a window's height, even when
+# the governing split happens to be horizontal - it simply does nothing.
+case $dir in
+left | right) axis=w ;;
+up | down) axis=h ;;
+esac
+# Which way along the ladder. Left and up go down it, right and down go up it.
+case $dir in
+left | up) step=down ;;
+right | down) step=up ;;
+esac
+
+active=$(hyprctl activewindow -j)
+[[ -n $(jq -r '.address // empty' <<<"$active") ]] || exit 0
+# Floating windows want half/edge snapping, not a ladder - a separate feature.
+[[ $(jq -r '.floating' <<<"$active") == false ]] || exit 0
+
+ws=$(jq -r '.workspace.id' <<<"$active")
+addr=$(jq -r '.address' <<<"$active")
+monitor=$(jq -r '.monitor' <<<"$active")
+
+clients=$(hyprctl clients -j)
+tiled=$(jq --argjson ws "$ws" \
+  '[.[] | select(.workspace.id == $ws and .floating == false and .mapped == true)]' \
+  <<<"$clients")
+# One tiled window has no split to move. Ratio (single_window_aspect_ratio) owns
+# that case, and resizing would just fight it.
+(($(jq length <<<"$tiled") >= 2)) || exit 0
+
+read -r fx fy fw fh < <(jq -r '"\(.at[0]) \(.at[1]) \(.size[0]) \(.size[1])"' <<<"$active")
+
+# Usable area excludes whatever Waybar reserved, so a "1/2" rung means half of the
+# space windows can actually occupy rather than half of the panel.
+#
+# activewindow's .monitor is the monitor's numeric ID, NOT its name - matching it
+# against .name yields nothing, and the empty result then divides by zero in awk and
+# kills the script silently under `set -e`. Hence the explicit check below.
+read -r usable_w usable_h < <(
+  jq -r --argjson m "$monitor" '
+    .[] | select(.id == $m)
+    | "\((.width / .scale) - .reserved[0] - .reserved[2]) \((.height / .scale) - .reserved[1] - .reserved[3])"
+  ' <<<"$(hyprctl monitors -j)"
+)
+[[ -n ${usable_w:-} && -n ${usable_h:-} ]] || die "no usable area for monitor id $monitor"
+
+if [[ $axis == w ]]; then
+  cur=$fw usable=$usable_w
+else
+  cur=$fh usable=$usable_h
+fi
+
+# Choose the next rung strictly in the direction of travel, rather than advancing an
+# index. A border dragged with the mouse leaves the split off-ladder entirely, where
+# an index has no meaning but "next rung below where I am" still does.
+target_frac=$(
+  awk -v cur="$cur" -v usable="$usable" -v step="$step" -v eps="$EPS" \
+    -v mode="$(mode)" -v rungs="${LADDER[*]}" '
+    BEGIN {
+      n = split(rungs, r, " ")
+      f = cur / usable
+      best = ""
+      if (step == "down") {
+        for (i = 1; i <= n; i++) if (r[i] < f - eps && (best == "" || r[i] > best)) best = r[i]
+        if (best == "") best = (mode == "wrap") ? r[n] : r[1]
+      } else {
+        for (i = 1; i <= n; i++) if (r[i] > f + eps && (best == "" || r[i] < best)) best = r[i]
+        if (best == "") best = (mode == "wrap") ? r[1] : r[n]
+      }
+      print best
+    }'
+)
+
+[[ -n $target_frac ]] || die "no rung chosen (cur=$cur usable=$usable)"
+
+target=$(awk -v f="$target_frac" -v u="$usable" 'BEGIN { printf "%d", f * u }')
+delta=$((target - cur))
+((delta != 0)) || exit 0
+
+# Sign guess: if a tiled window abuts our low edge (left for width, top for height)
+# and overlaps us on the other axis, assume we are the second child of the split, so
+# the delta has to be inverted. `+ 8` absorbs the gap between windows.
+second_child=$(
+  jq -r --arg addr "$addr" --arg axis "$axis" \
+    --argjson fx "$fx" --argjson fy "$fy" --argjson fw "$fw" --argjson fh "$fh" '
+    [ .[] | select(.address != $addr)
+      | if $axis == "w"
+        then select(.at[0] + .size[0] <= $fx + 8 and .at[1] < $fy + $fh and .at[1] + .size[1] > $fy)
+        else select(.at[1] + .size[1] <= $fy + 8 and .at[0] < $fx + $fw and .at[0] + .size[0] > $fx)
+        end
+    ] | length > 0' <<<"$tiled"
+)
+[[ $second_child == true ]] && sign=-1 || sign=1
+
+dispatch() {
+  local d=$1
+  if [[ $axis == w ]]; then
+    hyprctl dispatch resizeactive "$d" 0 >/dev/null
+  else
+    hyprctl dispatch resizeactive 0 "$d" >/dev/null
+  fi
+}
+
+measure() {
+  if [[ $axis == w ]]; then
+    hyprctl activewindow -j | jq -r '.size[0]'
+  else
+    hyprctl activewindow -j | jq -r '.size[1]'
+  fi
+}
+
+debug() { [[ -n ${TILE_RESIZE_DEBUG:-} ]] && echo "tile-resize: $*" >&2 || true; }
+debug "axis=$axis step=$step mode=$(mode) cur=$cur usable=$usable frac=$(awk -v c="$cur" -v u="$usable" 'BEGIN{printf "%.3f", c/u}')"
+debug "rung=$target_frac target=$target delta=$delta second_child=$second_child sign=$sign"
+
+# Converge on the target instead of computing one perfect delta, because two separate
+# Hyprland quirks make a single dispatch unreliable:
+#
+#  1. The delta is bounds-checked against the FOCUSED window's size but applied to the
+#     boundary INVERTED. Growing a second child by 767px means requesting -767, which
+#     is rejected outright when the window is only 766px wide. So a second child can
+#     only grow by roughly its own current size per call - large moves need chunking.
+#  2. The sign guess above is a heuristic and is wrong for a window in the middle of a
+#     nested run of columns.
+#
+# Both are handled by the same loop: request as much as validation will allow, measure,
+# and flip the sign once if the window travelled away from the target. Ordinary
+# layouts finish in one pass; the awkward ones take two or three and still land.
+MIN_PX=40
+flipped=0
+for _ in 1 2 3 4 5; do
+  now=$(measure)
+  remaining=$((target - now))
+  ((${remaining#-} > TOL_PX)) || break
+
+  req=$((sign * remaining))
+  # Keep the request inside what Hyprland will accept, or it is dropped entirely.
+  if ((now + req < MIN_PX)); then
+    req=$((MIN_PX - now))
+    debug "request clamped to $req to stay above ${MIN_PX}px"
+  fi
+  ((req != 0)) || break
+
+  dispatch "$req"
+  settle
+  after=$(measure)
+  debug "req=$req  $now -> $after  (target $target)"
+
+  if ((after == now)); then
+    # Refused. Either the sign is wrong, or the target is simply unreachable.
+    ((flipped)) && {
+      debug "refused twice, target unreachable - stopping"
+      break
+    }
+    sign=$((-sign))
+    flipped=1
+    debug "refused, flipping sign to $sign"
+  elif (((after - now) * remaining < 0)); then
+    sign=$((-sign))
+    flipped=1
+    debug "moved away from target, flipping sign to $sign"
+  fi
+done
+debug "final=$(measure) target=$target"
