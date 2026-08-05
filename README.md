@@ -104,7 +104,40 @@ it `man` pipes into a missing binary in any interactive terminal.
 Language runtimes are handled by [mise](https://mise.jdx.dev), not pacman —
 `~/.config/mise/config.toml` pins those per-project.
 
+## Why things are the way they are
+
+[`CONTEXT.md`](./CONTEXT.md) is the glossary. Worth reading first if you are going
+to touch the menus or the bar — Omarchy, Hyprland, Walker and this repo all use
+"theme", "menu" and "toggle" to mean different things, and three of the four menus
+are one modifier apart.
+
+[`docs/adr/`](./docs/adr/) records the decisions. Accepted ones explain existing
+behaviour that looks odd on purpose; proposed ones are decisions not yet made, and
+are the to-do list.
+
+| ADR | Decision | Status |
+|---|---|---|
+| [0001](./docs/adr/0001-omarchy-on-cachyos-not-the-omarchy-iso.md) | Omarchy layered onto CachyOS, not the Omarchy ISO — includes the installer path fix | accepted |
+| [0002](./docs/adr/0002-single-flat-stow-package.md) | One flat Stow package, adopted in place | accepted |
+| [0003](./docs/adr/0003-identity-behind-untracked-includes.md) | Identity behind untracked includes | accepted |
+| [0004](./docs/adr/0004-waybar-modules-dismiss-on-second-click.md) | Bar modules dismiss on a second click | accepted |
+| [0005](./docs/adr/0005-waybar-supervised-by-a-userspace-watchdog.md) | Waybar supervised by a polling watchdog | accepted |
+| [0006](./docs/adr/0006-calendar-hidden-on-its-own-special-workspace.md) | Calendar on its own special workspace | accepted |
+| [0007](./docs/adr/0007-wallpaper-pinned-independently-of-the-theme.md) | Wallpaper pinned independently of the theme | accepted |
+| [0008](./docs/adr/0008-aether-confined-to-generated-named-themes.md) | Aether may generate themes, not apply them | accepted |
+| [0009](./docs/adr/0009-waybar-stays-dark-in-every-theme.md) | The bar stays dark in every theme | accepted |
+| [0010](./docs/adr/0010-split-xcompose-to-track-it.md) | Split `~/.XCompose` so it can be tracked | proposed |
+| [0011](./docs/adr/0011-extend-second-click-dismissal-to-audio-and-cpu.md) | Second-click dismissal for audio and CPU | proposed |
+| [0012](./docs/adr/0012-unify-launcher-and-palette-on-elephant-menus.md) | Unify Launcher and System Palette | proposed |
+| [0013](./docs/adr/0013-promote-the-ratio-toggle-to-the-bar.md) | Ratio toggle onto the bar | proposed |
+| [0014](./docs/adr/0014-ghostty-split-keybinds.md) | Ghostty split keybinds, and bind `close_surface` | proposed |
+| [0015](./docs/adr/0015-replace-tmux-with-herdr.md) | Replace tmux with herdr | proposed |
+| [0016](./docs/adr/0016-remote-access-from-the-macbook.md) | Reach this machine from the MacBook over Tailscale | proposed |
+| [0017](./docs/adr/0017-druk-as-the-terminal-editor.md) | Bake off druk, Helix and Neovim as the terminal editor | proposed |
+| [0018](./docs/adr/0018-worktrunk-for-git-worktrees.md) | Manage worktrees with worktrunk | proposed |
+| [0019](./docs/adr/0019-idle-timings-for-a-remote-first-machine.md) | Retune the idle chain, keep the machine reachable | proposed |
+
 ## To do
 
 - Prune `packages.txt` down to a real, declarative package manifest
-- Fold in my running list of system tweaks and fixes
+- Work through the proposed ADRs above
