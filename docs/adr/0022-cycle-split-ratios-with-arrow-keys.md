@@ -44,21 +44,34 @@ behaviour for the 1-left/2-right case is what `splitratio` already does unaided.
 
 This is the rare case where the correct design is *smaller* than the proposed one.
 
-## Make each key monotonic
+## The traversal is a wrapping carousel
 
-The order originally described for the left arrow — `1/3`, then `2/3`, then `1/2` —
-means the second press of "shrink" **grows** the window. That is the same sensation
-already objected to in Neovim's resize keys (ADR-0017: "flying on inverted
-controls"), and it would arrive here self-inflicted.
+The arrows cycle a **list**, they do not mean "grow" and "shrink" directly. Left
+traverses the list one way, right the other. Read that way, the sequence originally
+described for the left arrow — `1/3`, then `2/3`, then `1/2` — is a descending
+traversal **with a wrap**, not an arbitrary order:
 
-Proposed instead:
+    left  from 1/2:   1/3  ->  (wrap)  2/3  ->  1/2  ->  1/3 ...
+    right from 1/2:   2/3  ->  (wrap)  1/3  ->  1/2  ->  2/3 ...
 
-- Left always shrinks: `2/3 → 1/2 → 1/3`. Right always grows. One meaning per key.
-- **Clamp, do not wrap.** Wrapping means a fourth press of shrink suddenly maximises.
-- Snap to the nearest rung **strictly in the direction pressed**, rather than
-  advancing an index. The window will not always be sitting on a ladder value — a
-  border dragged with the mouse leaves it at 0.42 — and an index-based cycle has no
-  answer for that, while "nearest rung in this direction" always does.
+Each key keeps exactly one meaning — one step down the ladder, or one step up — and
+the apparent reversal is only the wrap becoming visible. This is **not** the
+inverted-controls objection from ADR-0017; that was about a consistent mapping
+pointing the wrong way, and this mapping is consistent and points the right way.
+
+Still to choose:
+
+- **Wrap or clamp.** Wrapping reaches every size from a single key, which is worth
+  real ergonomic money, and with three rungs the wrap costs at most two extra
+  presses. Clamping never surprises anyone but requires both keys to move freely.
+  Current preference: wrap.
+- **Off-ladder starting positions.** A border dragged with the mouse leaves the split
+  at something like 0.42, where an index-based carousel has no current position to
+  advance from. Snapping to the nearest rung **in the direction of travel** answers
+  this and composes with wrapping unchanged.
+- **How many rungs.** Three keeps the wrap cheap. A fourth or fifth value makes
+  wrapping progressively more annoying and starts to argue for clamping instead, so
+  the two choices are not independent.
 
 ## The genuinely hard part: axis
 
