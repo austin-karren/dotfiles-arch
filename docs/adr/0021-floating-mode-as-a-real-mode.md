@@ -9,10 +9,20 @@ desktop behaves like macOS — windows keep their own size and position, can be
 resized, snap to halves and edges, and carry GNOME-style window buttons. Toggling
 back returns to tiling, which ignores the floating layout entirely.
 
-> **Partly built.** The placement half is done and lives in ADR-0024: halves, fill,
-> centre and the Size ladder all work on floating windows now. What remains here is the
-> *mode* — a desktop-wide toggle — and the window buttons. The findings below are
-> verified against this machine; those two decisions are not made.
+> **Partly built, and the rest may not be wanted.** The placement half is done and lives
+> in ADR-0024, with mouse resizing and Drag snap in ADR-0025: halves, fill, centre, the
+> Size ladder and draggable borders all work now.
+>
+> **The case for the mode itself has weakened as a result.** Having used it, the reported
+> position is that a Floating mode may not be needed at all — the desktop "feels more
+> mature" without one. That is the expected outcome if the original ask was really about
+> *capability* rather than *mode*: what was missing was the ability to place and size a
+> floating window at all, and that is now present inside tiling.
+>
+> Do not build the mode without re-establishing what it would add. On current evidence
+> that is only two things: making floating the *default* for new windows, and the
+> GNOME-style buttons — which remain the expensive item. This ADR is likely to be
+> rejected rather than implemented, and that should be recorded explicitly when decided.
 
 Today `SUPER+T` is Hyprland's `togglefloating`, which floats one window and leaves it
 at whatever size it already had. That is the whole of the floating story right now:
