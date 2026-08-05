@@ -87,7 +87,7 @@ not the hard part; having them at all is.
 - Whether **Floating mode** is per-workspace or global. Per-workspace is more useful
   (one scratch space for floating work) and matches how the Calendar special
   workspace already behaves (ADR-0006); global is what "toggle in the bar" implies.
-- Interaction with **Ratio** (ADR-0013 and the glossary). `single_window_aspect_ratio`
+- Interaction with the **Zen ratio** (ADR-0013, ADR-0026 and the glossary). `single_window_aspect_ratio`
   only applies to a lone *tiled* window, so it silently stops mattering in Floating
   mode. Two toggles on the bar where one quietly disables the other needs a decision,
   not a surprise.

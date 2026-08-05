@@ -130,7 +130,7 @@ are the to-do list.
 | [0010](./docs/adr/0010-split-xcompose-to-track-it.md) | Split `~/.XCompose` so it can be tracked | proposed |
 | [0011](./docs/adr/0011-extend-second-click-dismissal-to-audio-and-cpu.md) | Second-click dismissal for audio and CPU | proposed |
 | [0012](./docs/adr/0012-unify-launcher-and-palette-on-elephant-menus.md) | Unify Launcher and System Palette | proposed |
-| [0013](./docs/adr/0013-promote-the-ratio-toggle-to-the-bar.md) | Ratio toggle onto the bar | accepted |
+| [0013](./docs/adr/0013-promote-the-ratio-toggle-to-the-bar.md) | Zen ratio toggle onto the bar | accepted |
 | [0014](./docs/adr/0014-ghostty-split-keybinds.md) | Ghostty split keybinds, and bind `close_surface` | accepted |
 | [0015](./docs/adr/0015-replace-tmux-with-herdr.md) | Replace tmux with herdr | proposed |
 | [0016](./docs/adr/0016-remote-access-from-the-macbook.md) | Reach this machine from the MacBook over Tailscale | proposed |
@@ -139,10 +139,11 @@ are the to-do list.
 | [0019](./docs/adr/0019-idle-timings-for-a-remote-first-machine.md) | Retune the idle chain, keep the machine reachable | proposed |
 | [0020](./docs/adr/0020-super-w-closes-the-smallest-surface.md) | `SUPER+W` closes the smallest surface, not the window | accepted |
 | [0021](./docs/adr/0021-floating-mode-as-a-real-mode.md) | Make floating a real mode, toggleable from the bar | proposed (placement done in 0024) |
-| [0022](./docs/adr/0022-cycle-split-ratios-with-arrow-keys.md) | Cycle tiled window sizes along a Size ladder | accepted |
+| [0022](./docs/adr/0022-cycle-split-ratios-with-arrow-keys.md) | Cycle window sizes along a Size ladder | accepted |
 | [0023](./docs/adr/0023-arrow-modifiers-encode-scope.md) | Arrow-key modifiers encode what you are acting on | accepted |
 | [0024](./docs/adr/0024-floating-placement-keys.md) | Floating windows get placement keys | accepted |
 | [0025](./docs/adr/0025-resize-windows-by-dragging-borders.md) | Resize windows by dragging their borders | accepted |
+| [0026](./docs/adr/0026-zen-ratio-instead-of-a-square.md) | The Zen ratio: a reading column, not a square | accepted |
 
 ## To do
 
