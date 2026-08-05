@@ -145,3 +145,19 @@ tooltip {
 #custom-voxtype.recording {
   color: #a55555;
 }
+
+/* Ratio carries state by dimming, not by a second glyph or a colour.
+   ---------------------------------------------------------------------------
+   Dimming is already this bar's idiom for "present but not active" -- see
+   #workspaces button.empty above, and .hidden. Colour is not available: .active
+   means #a55555 red here and is reserved for warnings (recording, idle disabled,
+   notifications silenced), and Ratio being on is a normal state.
+
+   One glyph also fixes the footprint, so toggling cannot shift the icons beside it. */
+#custom-ratio {
+  opacity: 0.45;
+}
+
+#custom-ratio.active {
+  opacity: 1;
+}
