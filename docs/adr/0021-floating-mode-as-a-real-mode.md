@@ -9,9 +9,10 @@ desktop behaves like macOS — windows keep their own size and position, can be
 resized, snap to halves and edges, and carry GNOME-style window buttons. Toggling
 back returns to tiling, which ignores the floating layout entirely.
 
-> **Intent recorded, not yet grilled.** The *want* is settled; the *how* is
-> deliberately open. The findings below are verified against this machine; the
-> decisions are not made.
+> **Partly built.** The placement half is done and lives in ADR-0024: halves, fill,
+> centre and the Size ladder all work on floating windows now. What remains here is the
+> *mode* — a desktop-wide toggle — and the window buttons. The findings below are
+> verified against this machine; those two decisions are not made.
 
 Today `SUPER+T` is Hyprland's `togglefloating`, which floats one window and leaves it
 at whatever size it already had. That is the whole of the floating story right now:
@@ -29,11 +30,11 @@ Probed on this machine (Hyprland 0.51-era, layout `dwindle`):
 | Move a floating window | `dispatch moveactive` | Works. Unbound. |
 | Half/full snapping | `resizeactive exact` + `moveactive exact` | Needs a script; see the trap below. |
 
-So three of the four asks are bindings and one config flag, not new machinery.
-
-**The trap in `exact`:** percentage arguments are relative to the **monitor**, not the
-usable area. A window snapped to `exact 50% 100%` sits underneath Waybar. The
-reserved area has to come out of `hyprctl monitors -j` first.
+So three of the four asks are bindings and one config flag, not new machinery. Those
+three are now done — see ADR-0024, which also records the two traps that made them
+more than one-liners: `exact` percentages are relative to the **monitor** rather than
+the usable area, and `hyprctl` rounds the monitor scale so `width / scale` is several
+pixels wrong.
 
 ## Toggling the mode
 

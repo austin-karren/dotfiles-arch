@@ -105,6 +105,19 @@ exactly two sides — so how many windows are on the far side never has to be
 counted.
 _Avoid_: sibling, neighbour, container
 
+**Snap**:
+Placing a floating window into a half of the screen, or filling it, with a keybinding.
+Distinct from Hyprland's `general:snap`, which is snap-on-drag for floating windows
+and is a separate, currently disabled feature — so always say which is meant.
+_Avoid_: snapping (ambiguous between the two)
+
+**Usable area**:
+The part of a monitor a window may occupy: the logical monitor minus whatever Waybar
+reserved, minus the outer gap. What a Size ladder fraction and a Snap are both
+measured against, so "half the screen" always means half of this and never half of
+the panel.
+_Avoid_: screen, monitor, viewport
+
 **Floating mode**:
 A desktop-wide state in which windows keep their own size and position instead of
 being tiled — proposed, not built. Distinct from floating a single window with

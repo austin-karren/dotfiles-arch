@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
 #
-# Step the focused TILED window through a Size ladder of screen fractions.
+# Step the focused window through a Size ladder of screen fractions.
 # Left/up traverse the ladder down, right/down traverse it up. See ADR-0022.
 #
-#   tile-resize left|right|up|down
-#   tile-resize --toggle-mode      # wrap <-> clamp at the ends of the ladder
-#   tile-resize --status
+#   window-resize left|right|up|down
+#   window-resize --toggle-mode      # wrap <-> clamp at the ends of the ladder
+#   window-resize --status
+#
+# Tiled and floating windows use the same ladder and the same keys, but almost none of
+# the same machinery. A tiled window has no size of its own - it has a share of a split,
+# so resizing it means moving a boundary, which is where all the difficulty below comes
+# from. A floating window owns its geometry outright and can simply be told what size to
+# be. The floating branch is therefore a dozen lines and the tiled branch is the rest of
+# this file.
 #
 # WHY THIS IS NOT A ONE-LINER
 #
@@ -45,10 +52,11 @@ EPS=0.04
 # A landing within this many pixels of target is close enough to skip correcting.
 TOL_PX=12
 
-CLAMP_FLAG="$HOME/.local/state/omarchy/toggles/tile-resize-clamp"
+CLAMP_FLAG="$HOME/.local/state/omarchy/toggles/window-resize-clamp"
+LOGICAL_CACHE="$HOME/.local/state/omarchy/hypr-logical-size"
 
 die() {
-  echo "tile-resize: $*" >&2
+  echo "window-resize: $*" >&2
   exit 1
 }
 
@@ -66,7 +74,7 @@ case ${1-} in
   fi
   m=$(mode)
   command -v notify-send >/dev/null &&
-    notify-send -u low "Tile resize: $m" \
+    notify-send -u low "Window resize: $m" \
       "$([[ $m == wrap ]] && echo 'Ladder wraps around at the ends' || echo 'Ladder stops at the ends')"
   echo "$m"
   exit 0
@@ -76,7 +84,7 @@ case ${1-} in
   exit 0
   ;;
 left | right | up | down) dir=$1 ;;
-*) die "usage: tile-resize left|right|up|down | --toggle-mode | --status" ;;
+*) die "usage: window-resize left|right|up|down | --toggle-mode | --status" ;;
 esac
 
 # left/right act on width, up/down on height. Picking the axis from the key is what
@@ -92,10 +100,63 @@ left | up) step=down ;;
 right | down) step=up ;;
 esac
 
+# Choose the next rung strictly in the direction of travel, rather than advancing an
+# index. A border dragged with the mouse leaves the split off-ladder entirely, where an
+# index has no meaning but "next rung below where I am" still does.
+next_rung() {
+  awk -v cur="$1" -v usable="$2" -v step="$step" -v eps="$EPS" \
+    -v mode="$(mode)" -v rungs="${LADDER[*]}" '
+    BEGIN {
+      n = split(rungs, r, " ")
+      f = cur / usable
+      best = ""
+      if (step == "down") {
+        for (i = 1; i <= n; i++) if (r[i] < f - eps && (best == "" || r[i] > best)) best = r[i]
+        if (best == "") best = (mode == "wrap") ? r[n] : r[1]
+      } else {
+        for (i = 1; i <= n; i++) if (r[i] > f + eps && (best == "" || r[i] < best)) best = r[i]
+        if (best == "") best = (mode == "wrap") ? r[1] : r[n]
+      }
+      print best
+    }'
+}
+
 active=$(hyprctl activewindow -j)
 [[ -n $(jq -r '.address // empty' <<<"$active") ]] || exit 0
-# Floating windows want half/edge snapping, not a ladder - a separate feature.
-[[ $(jq -r '.floating' <<<"$active") == false ]] || exit 0
+
+# FLOATING: the easy case. The window owns its geometry, so there is no split to move,
+# no sign to work out and no convergence loop - just tell it what size to be.
+# `resizeactive exact` resizes a floating window around its own centre, which is the
+# behaviour wanted here: stepping a size should not also relocate the window.
+if [[ $(jq -r '.floating' <<<"$active") == true ]]; then
+  read -r _lw _lh fx0 fy0 fuw fuh < <(float-snap --usable-area) || exit 0
+  [[ -n ${fuw:-} ]] || exit 0
+  read -r cx cy cw ch < <(jq -r '"\(.at[0]) \(.at[1]) \(.size[0]) \(.size[1])"' <<<"$active")
+
+  if [[ $axis == w ]]; then
+    frac=$(next_rung "$cw" "$fuw")
+    new_w=$(awk -v f="$frac" -v u="$fuw" 'BEGIN { printf "%d", f * u }') new_h=$ch
+  else
+    frac=$(next_rung "$ch" "$fuh")
+    new_w=$cw new_h=$(awk -v f="$frac" -v u="$fuh" 'BEGIN { printf "%d", f * u }')
+  fi
+  [[ -n $frac ]] || exit 0
+  hyprctl dispatch resizeactive exact "$new_w" "$new_h" >/dev/null
+  settle
+
+  # Growing around the centre can push an edge under the bar or off screen. Pull it
+  # back inside the usable rect rather than leaving part of the window unreachable.
+  read -r nx ny nw nh < <(hyprctl activewindow -j | jq -r '"\(.at[0]) \(.at[1]) \(.size[0]) \(.size[1])"')
+  clamp_x=$nx clamp_y=$ny
+  ((clamp_x + nw > fx0 + fuw)) && clamp_x=$((fx0 + fuw - nw))
+  ((clamp_y + nh > fy0 + fuh)) && clamp_y=$((fy0 + fuh - nh))
+  ((clamp_x < fx0)) && clamp_x=$fx0
+  ((clamp_y < fy0)) && clamp_y=$fy0
+  if ((clamp_x != nx || clamp_y != ny)); then
+    hyprctl dispatch moveactive exact "$clamp_x" "$clamp_y" >/dev/null
+  fi
+  exit 0
+fi
 
 ws=$(jq -r '.workspace.id' <<<"$active")
 addr=$(jq -r '.address' <<<"$active")
@@ -117,13 +178,32 @@ read -r fx fy fw fh < <(jq -r '"\(.at[0]) \(.at[1]) \(.size[0]) \(.size[1])"' <<
 # activewindow's .monitor is the monitor's numeric ID, NOT its name - matching it
 # against .name yields nothing, and the empty result then divides by zero in awk and
 # kills the script silently under `set -e`. Hence the explicit check below.
-read -r usable_w usable_h < <(
+#
+# hyprctl also ROUNDS the scale, so width/scale is a few pixels out - 2299.4 where the
+# truth is 2304 on this machine. That error is inside EPS here, so the rung chosen is
+# still right, but the cache float-snap writes is exact, so prefer it when it exists.
+read -r mon_w mon_h mon_scale mon_name rl rt rr rb < <(
   jq -r --argjson m "$monitor" '
     .[] | select(.id == $m)
-    | "\((.width / .scale) - .reserved[0] - .reserved[2]) \((.height / .scale) - .reserved[1] - .reserved[3])"
+    | "\(.width) \(.height) \(.scale) \(.name) \(.reserved[0]) \(.reserved[1]) \(.reserved[2]) \(.reserved[3])"
   ' <<<"$(hyprctl monitors -j)"
 )
-[[ -n ${usable_w:-} && -n ${usable_h:-} ]] || die "no usable area for monitor id $monitor"
+[[ -n ${mon_w:-} ]] || die "no monitor with id $monitor"
+
+logical_w="" logical_h=""
+if [[ -f $LOGICAL_CACHE ]]; then
+  read -r logical_w logical_h < <(
+    awk -v k="$mon_name:${mon_w}x${mon_h}" '$1 == k { print $2, $3; exit }' "$LOGICAL_CACHE"
+  ) || true
+fi
+if [[ -z ${logical_w:-} ]]; then
+  read -r logical_w logical_h < <(
+    awk -v w="$mon_w" -v h="$mon_h" -v s="$mon_scale" 'BEGIN { print w / s, h / s }'
+  )
+fi
+
+usable_w=$(awk -v l="$logical_w" -v a="$rl" -v b="$rr" 'BEGIN { print l - a - b }')
+usable_h=$(awk -v l="$logical_h" -v a="$rt" -v b="$rb" 'BEGIN { print l - a - b }')
 
 if [[ $axis == w ]]; then
   cur=$fw usable=$usable_w
@@ -131,27 +211,7 @@ else
   cur=$fh usable=$usable_h
 fi
 
-# Choose the next rung strictly in the direction of travel, rather than advancing an
-# index. A border dragged with the mouse leaves the split off-ladder entirely, where
-# an index has no meaning but "next rung below where I am" still does.
-target_frac=$(
-  awk -v cur="$cur" -v usable="$usable" -v step="$step" -v eps="$EPS" \
-    -v mode="$(mode)" -v rungs="${LADDER[*]}" '
-    BEGIN {
-      n = split(rungs, r, " ")
-      f = cur / usable
-      best = ""
-      if (step == "down") {
-        for (i = 1; i <= n; i++) if (r[i] < f - eps && (best == "" || r[i] > best)) best = r[i]
-        if (best == "") best = (mode == "wrap") ? r[n] : r[1]
-      } else {
-        for (i = 1; i <= n; i++) if (r[i] > f + eps && (best == "" || r[i] < best)) best = r[i]
-        if (best == "") best = (mode == "wrap") ? r[1] : r[n]
-      }
-      print best
-    }'
-)
-
+target_frac=$(next_rung "$cur" "$usable")
 [[ -n $target_frac ]] || die "no rung chosen (cur=$cur usable=$usable)"
 
 target=$(awk -v f="$target_frac" -v u="$usable" 'BEGIN { printf "%d", f * u }')
@@ -190,7 +250,7 @@ measure() {
   fi
 }
 
-debug() { [[ -n ${TILE_RESIZE_DEBUG:-} ]] && echo "tile-resize: $*" >&2 || true; }
+debug() { [[ -n ${WINDOW_RESIZE_DEBUG:-} ]] && echo "window-resize: $*" >&2 || true; }
 debug "axis=$axis step=$step mode=$(mode) cur=$cur usable=$usable frac=$(awk -v c="$cur" -v u="$usable" 'BEGIN{printf "%.3f", c/u}')"
 debug "rung=$target_frac target=$target delta=$delta second_child=$second_child sign=$sign"
 

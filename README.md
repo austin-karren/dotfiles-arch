@@ -69,7 +69,7 @@ Since this repo installs the latter, a stray `~/.gitconfig` is ignored entirely.
 | `.config/uwsm/` | Session env (incl. making snap apps visible to walker) |
 | `.config/starship.toml`, `.config/tmux/` | Prompt and multiplexer |
 | `.bashrc` | Thin — sources Omarchy's `default/bash/rc` |
-| `.local/bin/` | Scripts a keybinding or bar module depends on: `close-surface`, `tile-resize`, `ratio-toggle`. The rest of `~/.local/bin` is untracked — see the to-do |
+| `.local/bin/` | Scripts a keybinding or bar module depends on: `close-surface`, `window-resize`, `float-snap`, `ratio-toggle`. The rest of `~/.local/bin` is untracked — see the to-do |
 
 ### Deliberately not tracked
 
@@ -138,9 +138,10 @@ are the to-do list.
 | [0018](./docs/adr/0018-worktrunk-for-git-worktrees.md) | Manage worktrees with worktrunk | proposed |
 | [0019](./docs/adr/0019-idle-timings-for-a-remote-first-machine.md) | Retune the idle chain, keep the machine reachable | proposed |
 | [0020](./docs/adr/0020-super-w-closes-the-smallest-surface.md) | `SUPER+W` closes the smallest surface, not the window | accepted |
-| [0021](./docs/adr/0021-floating-mode-as-a-real-mode.md) | Make floating a real mode, toggleable from the bar | proposed |
+| [0021](./docs/adr/0021-floating-mode-as-a-real-mode.md) | Make floating a real mode, toggleable from the bar | proposed (placement done in 0024) |
 | [0022](./docs/adr/0022-cycle-split-ratios-with-arrow-keys.md) | Cycle tiled window sizes along a Size ladder | accepted |
 | [0023](./docs/adr/0023-arrow-modifiers-encode-scope.md) | Arrow-key modifiers encode what you are acting on | accepted |
+| [0024](./docs/adr/0024-floating-placement-keys.md) | Floating windows get placement keys | accepted |
 
 ## To do
 
@@ -148,7 +149,7 @@ are the to-do list.
 - Work through the proposed ADRs above
 - Track the rest of `~/.local/bin` — `quick-menu`, `waybar-watchdog`, `pin-wallpaper`,
   `calendar-toggle`, `window-toggle`, `menu-toggle`, `toggle-appearance`,
-  `aether-theme`. Only `close-surface`, `tile-resize` and `ratio-toggle` are in the repo, so ADRs
+  `aether-theme`. Only `close-surface`, `window-resize`, `float-snap` and `ratio-toggle` are in the repo, so ADRs
   0005, 0007 and 0012 currently document behaviour that a rebuild would not reproduce
 - Settle wrap versus clamp for the Size ladder (ADR-0022) after using both, and put
-  the switch in the Toggle Menu instead of `tile-resize --toggle-mode`
+  the switch in the Toggle Menu instead of `window-resize --toggle-mode`
