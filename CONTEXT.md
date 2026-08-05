@@ -73,23 +73,27 @@ _Avoid_: the menu, main menu
 **Toggle Menu**:
 One submenu of the Omarchy Menu, reachable directly at `SUPER+CTRL+O`. Holds the
 on/off switches: Screensaver, Nightlight, Idle, Notifications, Bar, Layout,
-Zen ratio, Gaps.
+1-Window Ratio, Gaps.
 _Avoid_: options menu, settings, toggles
 
 ## Windows
 
-**Zen ratio**:
-The toggle that holds a lone tiled window to a reading column instead of letting it
-span the display, via Hyprland's `single_window_aspect_ratio`. Currently **6:5**.
-Applies only when exactly one *tiled* window is on the workspace, which is why
-floating a window can make a remaining window narrow abruptly. Reachable from the bar;
-the Toggle Menu has a separate entry that sets 1:1 instead.
+**Single-window zen aspect ratio**:
+Omarchy's feature for holding a lone tiled window to a reading column instead of
+letting it span the display, via Hyprland's `single_window_aspect_ratio`. Currently
+**6:5**. Applies only when exactly one *tiled* window is on the workspace, which is
+why floating a window can make a remaining window narrow abruptly.
 
-Was called "Ratio" and was 1:1; renamed because a square is one setting of the feature
-rather than the point of it. Omarchy's own name for it is still "single-window
-**square** aspect ratio", which now describes only the value that entry sets, not what
-this toggle does.
-_Avoid_: Ratio, single window mode, square mode, 1 window ratio
+Omarchy calls it "single-window **square** aspect ratio" and this rice changes exactly
+one word, because the value is no longer 1:1. Keep the full name — it says what the
+feature does, and it is what Omarchy's own notifications say. "Zen ratio" was tried as
+a short form and dropped: it read as a separate feature from the one the Toggle Menu
+and the notifications name.
+
+Reachable three ways — the bar module, the Toggle Menu's "1-Window Ratio" entry, and
+`SUPER+CTRL+BACKSPACE` — all driving one flag file. The menu label and its notification
+still say "square" and "Ratio"; those strings live in Omarchy's read-only tree.
+_Avoid_: Ratio, Zen ratio, single window mode, square mode, 1 window ratio
 
 **Pitch** (bar sense):
 The distance between the *centres* of adjacent bar icons, held constant by giving
@@ -101,8 +105,8 @@ _Avoid_: spacing, gap, margin
 
 **Size ladder**:
 The fixed set of fractions a tiled window steps through when resized by keyboard —
-thirds and a half. Distinct from the Zen ratio, which is a single constraint on one
-window rather than a set of sizes to step through.
+thirds and a half. Distinct from the single-window zen aspect ratio, which is one
+fixed constraint rather than a set of sizes to step through.
 _Avoid_: ratio, ratios, sizes
 
 **Parent split**:
