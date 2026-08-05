@@ -130,11 +130,15 @@ window-counting anywhere in the implementation.
 
 ## Keybinding
 
-`SUPER+CTRL+ALT` + arrows. It is the only arrow chord free at **both** levels: `SUPER`,
-`SUPER+SHIFT`, `SUPER+ALT` and `SUPER+SHIFT+ALT` arrows are taken by Hyprland, while
-Ghostty claims `CTRL+SHIFT`, `CTRL+ALT` and `SUPER+CTRL+SHIFT` arrows for its own tabs
-and splits. A chord chosen carelessly is either swallowed by the compositor or
-collides inside the terminal.
+`SUPER+ALT` + arrows, per the modifier scheme in ADR-0023: two modifiers because it
+acts on the window, `ALT` because it resizes rather than moves it.
+
+It first shipped on `SUPER+CTRL+ALT`, the only arrow chord then free at both the
+compositor and terminal levels — worth remembering when picking any future arrow
+binding, because Hyprland claims `SUPER`, `SUPER+SHIFT` and `SUPER+SHIFT+ALT` arrows
+while Ghostty claims `CTRL+SHIFT`, `CTRL+ALT` and `SUPER+CTRL+SHIFT` arrows for its own
+tabs and splits. A chord chosen carelessly is either swallowed by the compositor or
+collides inside the terminal. `SUPER+ALT` was freed deliberately instead.
 
 Wrap/clamp is switched with `tile-resize --toggle-mode`, which flag-files into
 `~/.local/state/omarchy/toggles/` like Omarchy's own toggles. Deliberately not bound

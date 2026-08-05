@@ -140,6 +140,7 @@ are the to-do list.
 | [0020](./docs/adr/0020-super-w-closes-the-smallest-surface.md) | `SUPER+W` closes the smallest surface, not the window | accepted |
 | [0021](./docs/adr/0021-floating-mode-as-a-real-mode.md) | Make floating a real mode, toggleable from the bar | proposed |
 | [0022](./docs/adr/0022-cycle-split-ratios-with-arrow-keys.md) | Cycle tiled window sizes along a Size ladder | accepted |
+| [0023](./docs/adr/0023-arrow-modifiers-encode-scope.md) | Arrow-key modifiers encode what you are acting on | accepted |
 
 ## To do
 
