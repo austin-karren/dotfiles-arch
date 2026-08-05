@@ -73,18 +73,23 @@ _Avoid_: the menu, main menu
 **Toggle Menu**:
 One submenu of the Omarchy Menu, reachable directly at `SUPER+CTRL+O`. Holds the
 on/off switches: Screensaver, Nightlight, Idle, Notifications, Bar, Layout,
-Ratio, Gaps.
+Zen ratio, Gaps.
 _Avoid_: options menu, settings, toggles
 
-**Ratio**:
-The toggle that constrains a lone window to a 1:1 aspect ratio, by adding or
-removing Hyprland's `single_window_aspect_ratio` setting. Reachable from both the
-Toggle Menu and the bar. Applies only when exactly one *tiled* window is on the
-workspace, which is why floating a window can make a remaining window snap to a
-square.
-_Avoid_: single window mode, square mode, 1 window ratio
-
 ## Windows
+
+**Zen ratio**:
+The toggle that holds a lone tiled window to a reading column instead of letting it
+span the display, via Hyprland's `single_window_aspect_ratio`. Currently **6:5**.
+Applies only when exactly one *tiled* window is on the workspace, which is why
+floating a window can make a remaining window narrow abruptly. Reachable from the bar;
+the Toggle Menu has a separate entry that sets 1:1 instead.
+
+Was called "Ratio" and was 1:1; renamed because a square is one setting of the feature
+rather than the point of it. Omarchy's own name for it is still "single-window
+**square** aspect ratio", which now describes only the value that entry sets, not what
+this toggle does.
+_Avoid_: Ratio, single window mode, square mode, 1 window ratio
 
 **Pitch** (bar sense):
 The distance between the *centres* of adjacent bar icons, held constant by giving
@@ -96,8 +101,8 @@ _Avoid_: spacing, gap, margin
 
 **Size ladder**:
 The fixed set of fractions a tiled window steps through when resized by keyboard —
-thirds and a half. Distinct from Ratio, which is a constraint on one window rather
-than a set of sizes to step through.
+thirds and a half. Distinct from the Zen ratio, which is a single constraint on one
+window rather than a set of sizes to step through.
 _Avoid_: ratio, ratios, sizes
 
 **Parent split**:

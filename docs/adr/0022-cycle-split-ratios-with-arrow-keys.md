@@ -129,7 +129,7 @@ Exercised against throwaway windows in every layout that matters:
 | One left + two stacked right, width from a stacked window | `0.321 → 0.667`, widths `1533/739/739 → 739/1533/1533` — the whole column moved |
 | Height ladder on a stacked window | `0.490 → 0.666 → 0.500` |
 | Horizontal key on a horizontally-split window | Height unchanged |
-| Single tiled window | No-op, leaves **Ratio** alone |
+| Single tiled window | No-op, leaves the **Zen ratio** alone |
 
 The fourth row is the case the original design worried about, working with no
 window-counting anywhere in the implementation.
