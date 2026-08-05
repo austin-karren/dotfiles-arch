@@ -46,3 +46,11 @@ secret() {
   echo -e "\e[33m\e[0m Generating secret..."
   openssl rand -base64 32
 }
+
+# pnpm
+export PNPM_HOME="/home/austinkarren/.local/share/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME/bin:"*) ;;
+  *) export PATH="$PNPM_HOME/bin:$PATH" ;;
+esac
+# pnpm end
