@@ -83,13 +83,50 @@
   /* Behaviors */
   "format_on_save": "on",
 
-  /* Themes 🎨 */
+  /*
+    Extensions 🧩
+    ⚠️ warning: this key REPLACES the default of { "html": true } rather than merging,
+    so everything wanted has to be listed. Setting one to false uninstalls it.
+    🗒️ note: ids are registry ids (api.zed.dev/extensions), not display names.
+  */
+  "auto_install_extensions": {
+    /* Themes */
+    "catppuccin": true, // 🐱 Catppuccin — Latte / Frappe / Macchiato / Mocha
+    /* Tooling */
+    "git-firefly": true, // Git Firefly
+    "oxc": true, // oxlint + oxfmt, configured under "lsp" above
+    "tsgo": true, // "TypeScript Language Server" — see the disabled block above
+    "typos": true, // typos-lsp, configured under "lsp" above
+    /* Languages */
+    "astro": true,
+    "dockerfile": true,
+    "elixir": true,
+    "html": true,
+    "java": true,
+    "log": true,
+    "scss": true, // SCSS & SASS
+    "sql": true,
+    "svelte": true,
+    "terraform": true,
+    "toml": true,
+    "vue": true,
+  },
+
+  /*
+    Themes 🎨
+    🐧 linux: Zed's built-ins, where the macOS repo uses Catppuccin. The Catppuccin
+    extension is installed above, so switching is just swapping the two lines below.
+    ⚠️ warning: naming a theme from a missing extension does not fail loudly — Zed
+    falls back to One Dark/One Light and writes that fallback back into this file,
+    which reads as the config silently reverting itself.
+  */
   "theme": {
     "mode": "system",
-    "dark": "Catppuccin Mocha", // ⚫
-    "light": "Catppuccin Latte", // 🟤
+    "dark": "One Dark", // ⚫
+    "light": "One Light", // 🟤
+    // dark: "Catppuccin Mocha" // 🐱
+    // light: "Catppuccin Latte" // 🐱
     // dark: "Andromeda" // ✨
-    // light: "One Light" // 💡
   },
 
   /*

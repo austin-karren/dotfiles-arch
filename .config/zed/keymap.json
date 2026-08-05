@@ -1,22 +1,31 @@
 [
   {
     "context": "Workspace",
-    //ctrl-alt-cmd-shift = superkey (bound to capslock)
-    //ctrl-alt-cmd = alt superkey (to prevent overlapping with Raycast superkey commands)
+    /*
+      🐧 linux: adapted from the macOS repo, which builds everything on a "superkey"
+      (ctrl-alt-cmd-shift, remapped onto capslock) plus ctrl-alt-cmd for chords that
+      would otherwise collide with Raycast. Neither survives here: `cmd` does not
+      exist on Linux, so those bindings simply never fire.
+
+      Most of them turned out to be unnecessary rather than in need of translation.
+      Zed's own Linux defaults already provide both halves, distinguished by whether
+      ctrl is held on the second key of the chord:
+
+        ctrl-k ctrl-<arrow>   workspace::ActivatePane<Dir>   (was ctrl-alt-cmd-<arrow>)
+        ctrl-k <arrow>        pane::Split<Dir>               (was cmd-k cmd-<arrow>)
+
+      So only the two with no Linux equivalent are bound here.
+
+      🗒️ note: the macOS splits are also lossier — cmd-k cmd-up and cmd-k cmd-down
+      both fire SplitHorizontal, and left/right both fire SplitVertical, so four keys
+      reach two actions. The Linux defaults give four distinct directions instead,
+      which is why they are left alone rather than overridden to match.
+    */
     "bindings": {
-      //workspace::keybinds
-      "ctrl-alt-cmd-up": "workspace::ActivatePaneUp",
-      "ctrl-alt-cmd-down": "workspace::ActivatePaneDown",
-      "ctrl-alt-cmd-left": "workspace::ActivatePaneLeft",
-      "ctrl-alt-cmd-right": "workspace::ActivatePaneRight",
-      //pane::keybinds
-      "cmd-k cmd-x": "pane::JoinAll",
-      "cmd-k cmd-up": "pane::SplitHorizontal",
-      "cmd-k cmd-down": "pane::SplitHorizontal",
-      "cmd-k cmd-left": "pane::SplitVertical",
-      "cmd-k cmd-right": "pane::SplitVertical",
-      //project_panel::keybinds
-      "ctrl-alt-cmd-x": "project_panel::CollapseAllEntries",
+      // pane::keybinds — no Linux default; direct translation of cmd-k cmd-x.
+      "ctrl-k ctrl-x": "pane::JoinAll",
+      // project_panel::keybinds — was ctrl-alt-cmd-x; ctrl-alt-x is unbound on Linux.
+      "ctrl-alt-x": "project_panel::CollapseAllEntries",
     },
   },
   // AI Bindings
@@ -25,9 +34,5 @@
     "bindings": {
       "tab": "editor::AcceptEditPrediction",
     },
-  },
-  {
-    "context": "Workspace",
-    "bindings": {},
   },
 ]
