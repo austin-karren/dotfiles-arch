@@ -150,6 +150,13 @@ visible while working elsewhere. It can be used as transport by popping, switchi
 un-popping, but that **converts the window to floating** and it arrives floating.
 _Avoid_: pin (that is only half of what it does), float
 
+The same key un-pops, but it acts on the **focused** window, and that is easy to get
+wrong: a Pinned window stays visible across workspace switches, so what you are looking
+at and what has focus drift apart. Pressing `SUPER+O` while focus is elsewhere pops that
+other window instead, which reads as the key cycling through windows rather than
+reversing. Focus the popped window first. Popped windows carry a `pop` tag, so they can
+also be found regardless of focus.
+
 **Pinned window**:
 A floating window drawn on every workspace. A property, not an action, and unrelated to
 a **Pinned wallpaper** despite the shared word.
