@@ -78,8 +78,30 @@ _Avoid_: options menu, settings, toggles
 
 **Ratio**:
 The Toggle Menu entry that constrains a lone window to a 1:1 aspect ratio, by
-adding or removing Hyprland's `single_window_aspect_ratio` setting.
+adding or removing Hyprland's `single_window_aspect_ratio` setting. Applies only
+when exactly one *tiled* window is on the workspace, which is why floating a
+window can make a remaining window snap to a square.
 _Avoid_: single window mode, square mode, 1 window ratio
+
+**Size ladder**:
+The fixed set of fractions a tiled window steps through when resized by keyboard —
+thirds and a half. Distinct from Ratio, which is a constraint on one window rather
+than a set of sizes to step through.
+_Avoid_: ratio, ratios, sizes
+
+**Parent split**:
+The boundary a tiled window shares with the rest of the layout, and the thing a
+keyboard resize actually moves. Because the layout is a binary tree, it always has
+exactly two sides — so how many windows are on the far side never has to be
+counted.
+_Avoid_: sibling, neighbour, container
+
+**Floating mode**:
+A desktop-wide state in which windows keep their own size and position instead of
+being tiled — proposed, not built. Distinct from floating a single window with
+`SUPER+T`, which is one window opting out of a tiling layout that still governs
+everything else.
+_Avoid_: floating, windowed mode
 
 ## Waybar behaviour
 
