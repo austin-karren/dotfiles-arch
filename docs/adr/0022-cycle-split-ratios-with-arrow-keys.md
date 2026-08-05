@@ -2,15 +2,21 @@
 status: accepted
 ---
 
-# Cycle tiled window sizes along a ladder with arrow keys
+# Cycle window sizes along a ladder with arrow keys
 
-`SUPER+CTRL+ALT` plus an arrow steps the focused tiled window through a **Size
-ladder** of `1/3, 1/2, 2/3` of the screen, with the rest of the layout absorbing the
-change. Left/right act on width, up/down on height. Implemented as
-[`tile-resize`](../../.local/bin/tile-resize).
+`SUPER+ALT` plus an arrow steps the focused window through a **Size ladder** of
+`1/3, 1/2, 2/3` of the screen. Left/right act on width, up/down on height. Implemented
+as [`window-resize`](../../.local/bin/window-resize).
 
 The key's direction is spatial — right widens, down heightens — so no key ever means
 two things depending on context.
+
+Tiled and floating windows share the ladder and the keys but almost no machinery, and
+the asymmetry is worth stating because it is the reverse of what the file sizes suggest.
+A tiled window has **no size of its own** — it holds a share of a split, so resizing it
+means moving a boundary, which is where everything below comes from. A floating window
+owns its geometry and can simply be told what size to be, so that branch is a dozen
+lines. Everything that follows concerns the tiled case.
 
 ## Neither Hyprland primitive does this on its own
 
@@ -140,7 +146,7 @@ while Ghostty claims `CTRL+SHIFT`, `CTRL+ALT` and `SUPER+CTRL+SHIFT` arrows for 
 tabs and splits. A chord chosen carelessly is either swallowed by the compositor or
 collides inside the terminal. `SUPER+ALT` was freed deliberately instead.
 
-Wrap/clamp is switched with `tile-resize --toggle-mode`, which flag-files into
+Wrap/clamp is switched with `window-resize --toggle-mode`, which flag-files into
 `~/.local/state/omarchy/toggles/` like Omarchy's own toggles. Deliberately not bound
 to a key — it is an occasional A/B switch, and `SUPER+CTRL+ALT+R` was already taken.
 It belongs in the Toggle Menu eventually (ADR-0013).
