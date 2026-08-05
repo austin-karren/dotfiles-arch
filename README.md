@@ -69,6 +69,7 @@ Since this repo installs the latter, a stray `~/.gitconfig` is ignored entirely.
 | `.config/uwsm/` | Session env (incl. making snap apps visible to walker) |
 | `.config/starship.toml`, `.config/tmux/` | Prompt and multiplexer |
 | `.bashrc` | Thin — sources Omarchy's `default/bash/rc` |
+| `.local/bin/` | Scripts a keybinding depends on. Only `close-surface` so far — see the to-do |
 
 ### Deliberately not tracked
 
@@ -130,14 +131,19 @@ are the to-do list.
 | [0011](./docs/adr/0011-extend-second-click-dismissal-to-audio-and-cpu.md) | Second-click dismissal for audio and CPU | proposed |
 | [0012](./docs/adr/0012-unify-launcher-and-palette-on-elephant-menus.md) | Unify Launcher and System Palette | proposed |
 | [0013](./docs/adr/0013-promote-the-ratio-toggle-to-the-bar.md) | Ratio toggle onto the bar | proposed |
-| [0014](./docs/adr/0014-ghostty-split-keybinds.md) | Ghostty split keybinds, and bind `close_surface` | proposed |
+| [0014](./docs/adr/0014-ghostty-split-keybinds.md) | Ghostty split keybinds, and bind `close_surface` | accepted |
 | [0015](./docs/adr/0015-replace-tmux-with-herdr.md) | Replace tmux with herdr | proposed |
 | [0016](./docs/adr/0016-remote-access-from-the-macbook.md) | Reach this machine from the MacBook over Tailscale | proposed |
 | [0017](./docs/adr/0017-druk-as-the-terminal-editor.md) | Bake off druk, Helix and Neovim as the terminal editor | proposed |
 | [0018](./docs/adr/0018-worktrunk-for-git-worktrees.md) | Manage worktrees with worktrunk | proposed |
 | [0019](./docs/adr/0019-idle-timings-for-a-remote-first-machine.md) | Retune the idle chain, keep the machine reachable | proposed |
+| [0020](./docs/adr/0020-super-w-closes-the-smallest-surface.md) | `SUPER+W` closes the smallest surface, not the window | accepted |
 
 ## To do
 
 - Prune `packages.txt` down to a real, declarative package manifest
 - Work through the proposed ADRs above
+- Track the rest of `~/.local/bin` — `quick-menu`, `waybar-watchdog`, `pin-wallpaper`,
+  `calendar-toggle`, `window-toggle`, `menu-toggle`, `toggle-appearance`,
+  `aether-theme`. Only `close-surface` is in the repo, so ADRs 0005, 0007 and 0012
+  currently document behaviour that a rebuild would not reproduce

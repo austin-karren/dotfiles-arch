@@ -101,6 +101,39 @@ hidden — a distinction each Toggle wrapper decides for itself based on how
 expensive the window is to restart.
 _Avoid_: close, hide, kill (each of those asserts a mechanism)
 
+## Closing things
+
+**Surface**:
+The smallest thing on screen that can be closed on its own — a terminal split, a
+browser tab, an editor buffer, or a whole window when it contains none of those.
+Borrowed from Ghostty, which uses the word for exactly this, and adopted here
+because the compositor has no word for it at all.
+_Avoid_: pane, tab, split (each names one kind of Surface, not the category)
+
+**Close ladder**:
+The rule that closing acts on the innermost Surface first and only reaches the
+window once nothing smaller is left: pane, then tab, then window. What makes a
+close key safe to hit reflexively.
+_Avoid_: cascade, escalation
+
+**Compositor-level close**:
+A close request Hyprland issues against a window. It cannot see inside the
+window, so it takes every Surface within it at once — it cannot walk the Close
+ladder, by construction rather than by omission.
+_Avoid_: force close, hard close (those describe `forcekillactive`, which is a
+different thing again)
+
+**App-level close**:
+A close the focused application performs on itself, having been asked in its own
+keyboard language. The only kind that can walk the Close ladder, because only the
+app knows what Surfaces it contains.
+_Avoid_: native close, soft close
+
+**Quit**:
+Reserved for disposing of a whole window or application, as opposed to one
+Surface. The distinction the W and Q keys encode: W closes a Surface, Q quits.
+_Avoid_: exit, close (Close belongs to the ladder)
+
 ## Launcher internals
 
 **Walker**:
