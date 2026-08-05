@@ -105,11 +105,15 @@ exactly two sides — so how many windows are on the far side never has to be
 counted.
 _Avoid_: sibling, neighbour, container
 
-**Snap**:
+**Keyboard snap**:
 Placing a floating window into a half of the screen, or filling it, with a keybinding.
-Distinct from Hyprland's `general:snap`, which is snap-on-drag for floating windows
-and is a separate, currently disabled feature — so always say which is meant.
-_Avoid_: snapping (ambiguous between the two)
+
+**Drag snap**:
+Hyprland's `general:snap` — a dragged floating window pulling flush to a screen edge
+or another window when released nearby. A different mechanism from Keyboard snap,
+applying only while the mouse is held, and both are enabled. Say which one is meant;
+bare "snap" is ambiguous.
+_Avoid_: snap, snapping (unqualified)
 
 **Usable area**:
 The part of a monitor a window may occupy: the logical monitor minus whatever Waybar

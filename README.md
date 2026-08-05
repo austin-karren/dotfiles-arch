@@ -142,6 +142,7 @@ are the to-do list.
 | [0022](./docs/adr/0022-cycle-split-ratios-with-arrow-keys.md) | Cycle tiled window sizes along a Size ladder | accepted |
 | [0023](./docs/adr/0023-arrow-modifiers-encode-scope.md) | Arrow-key modifiers encode what you are acting on | accepted |
 | [0024](./docs/adr/0024-floating-placement-keys.md) | Floating windows get placement keys | accepted |
+| [0025](./docs/adr/0025-resize-windows-by-dragging-borders.md) | Resize windows by dragging their borders | accepted |
 
 ## To do
 
