@@ -68,6 +68,7 @@
 
    Do not add per-module margins here -- that reintroduces state-dependent drift. */
 #custom-apexshot,
+#custom-ratio,
 #custom-weather,
 #bluetooth,
 #network,
