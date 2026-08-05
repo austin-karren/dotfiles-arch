@@ -42,8 +42,13 @@ container. Those bindings are gone.
 
 The judgement that this is free rather than a loss rests on evidence, not preference:
 `CTRL+SUPER`+left/right, which was `changegroupactive` (cycling tabs *within* a group),
-had already been unbound to make room for workspace switching. Groups are not usable in
-any convenient way once you cannot cycle them, so nothing was being used.
+had already been unbound to make room for workspace switching. Nothing in use was lost.
+
+To be precise, though — groups are **not** fully dismantled, and an earlier version of
+this ADR overstated it by saying they were unusable. `SUPER+G` still toggles grouping and
+`SUPER+ALT`+scroll still cycles a group. So groups remain reachable, just without arrow
+navigation. That scroll binding is left alone deliberately: removing it is a separate
+decision about whether groups are wanted at all, and ADR-0025 declines to reuse it.
 
 If groups are ever wanted, they should come back on a three-modifier chord, since
 they are window-structural rather than navigational.

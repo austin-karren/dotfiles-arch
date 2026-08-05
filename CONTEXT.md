@@ -84,6 +84,8 @@ workspace, which is why floating a window can make a remaining window snap to a
 square.
 _Avoid_: single window mode, square mode, 1 window ratio
 
+## Windows
+
 **Pitch** (bar sense):
 The distance between the *centres* of adjacent bar icons, held constant by giving
 every module an identical box wider than its widest possible glyph. Deliberately
@@ -128,6 +130,36 @@ being tiled — proposed, not built. Distinct from floating a single window with
 `SUPER+T`, which is one window opting out of a tiling layout that still governs
 everything else.
 _Avoid_: floating, windowed mode
+
+### Getting a window to another workspace
+
+Three separate mechanisms, easily conflated because all three end with the window
+somewhere else. They differ in what happens to the window on the way.
+
+**Move to workspace**:
+`movetoworkspace` / `movetoworkspacesilent` — hands the window to another workspace and
+**preserves whether it was tiled or floating**, so a tiled window re-tiles into the
+destination layout. The plain form follows the window; the silent form leaves you where
+you are. The direct mechanism, and the only one that is purely a transfer.
+_Avoid_: send, throw, push
+
+**Pop out**:
+`SUPER+O` (`omarchy-hyprland-window-pop`) — makes a window floating *and* pinned, so it
+stays on screen across workspace changes. Its purpose is picture-in-picture: keep this
+visible while working elsewhere. It can be used as transport by popping, switching, then
+un-popping, but that **converts the window to floating** and it arrives floating.
+_Avoid_: pin (that is only half of what it does), float
+
+**Pinned window**:
+A floating window drawn on every workspace. A property, not an action, and unrelated to
+a **Pinned wallpaper** despite the shared word.
+_Avoid_: always on top, sticky
+
+**Scratchpad**:
+A special workspace used to hold a window aside — `SUPER+ALT+S` stashes the focused
+window there, `SUPER+S` summons it from anywhere. Closest in spirit to Pop out used as
+transport, but purpose-built for it and without forcing the window to float.
+_Avoid_: stash, shelf, drawer
 
 ## Waybar behaviour
 
