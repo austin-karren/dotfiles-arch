@@ -77,11 +77,20 @@ Ratio, Gaps.
 _Avoid_: options menu, settings, toggles
 
 **Ratio**:
-The Toggle Menu entry that constrains a lone window to a 1:1 aspect ratio, by
-adding or removing Hyprland's `single_window_aspect_ratio` setting. Applies only
-when exactly one *tiled* window is on the workspace, which is why floating a
-window can make a remaining window snap to a square.
+The toggle that constrains a lone window to a 1:1 aspect ratio, by adding or
+removing Hyprland's `single_window_aspect_ratio` setting. Reachable from both the
+Toggle Menu and the bar. Applies only when exactly one *tiled* window is on the
+workspace, which is why floating a window can make a remaining window snap to a
+square.
 _Avoid_: single window mode, square mode, 1 window ratio
+
+**Pitch** (bar sense):
+The distance between the *centres* of adjacent bar icons, held constant by giving
+every module an identical box wider than its widest possible glyph. Deliberately
+not the same as the visible gap between two glyphs, which varies as status icons
+change width. The bar is tuned for even Pitch, so a new module joins the existing
+box rule instead of getting margins of its own.
+_Avoid_: spacing, gap, margin
 
 **Size ladder**:
 The fixed set of fractions a tiled window steps through when resized by keyboard —

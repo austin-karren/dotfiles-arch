@@ -9,6 +9,7 @@
   "modules-right": [
     "group/tray-expander",
     "custom/apexshot",
+    "custom/ratio",
     "custom/weather",
     "bluetooth",
     "network",
@@ -58,6 +59,25 @@
     "on-click": "apexshot capture area",
     "on-click-middle": "apexshot record ui",
     "on-click-right": "apexshot capture screen"
+  },
+  // Ratio: single_window_aspect_ratio, previously only reachable from the Toggle Menu.
+  // Two glyphs from one Material Design family - crop_landscape when off, crop_square
+  // when on - so the icon shows what a lone window will do. See ~/.local/bin/ratio-toggle.
+  //
+  // Sits beside apexshot because both are actions rather than status; everything from
+  // weather rightwards reports something.
+  //
+  // The interval is a fallback, not the mechanism. Clicking here signals the bar
+  // immediately, but Ratio can also be flipped from the Toggle Menu, which calls
+  // omarchy's script directly and cannot know the bar exists. Re-reading a flag file
+  // every few seconds keeps the icon honest either way.
+  "custom/ratio": {
+    "format": "{}",
+    "exec": "ratio-toggle --status",
+    "return-type": "json",
+    "signal": 11,
+    "interval": 3,
+    "on-click": "ratio-toggle"
   },
   "custom/update": {
     "format": "",

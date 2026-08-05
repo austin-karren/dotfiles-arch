@@ -69,7 +69,7 @@ Since this repo installs the latter, a stray `~/.gitconfig` is ignored entirely.
 | `.config/uwsm/` | Session env (incl. making snap apps visible to walker) |
 | `.config/starship.toml`, `.config/tmux/` | Prompt and multiplexer |
 | `.bashrc` | Thin — sources Omarchy's `default/bash/rc` |
-| `.local/bin/` | Scripts a keybinding depends on: `close-surface`, `tile-resize`. The rest of `~/.local/bin` is untracked — see the to-do |
+| `.local/bin/` | Scripts a keybinding or bar module depends on: `close-surface`, `tile-resize`, `ratio-toggle`. The rest of `~/.local/bin` is untracked — see the to-do |
 
 ### Deliberately not tracked
 
@@ -130,7 +130,7 @@ are the to-do list.
 | [0010](./docs/adr/0010-split-xcompose-to-track-it.md) | Split `~/.XCompose` so it can be tracked | proposed |
 | [0011](./docs/adr/0011-extend-second-click-dismissal-to-audio-and-cpu.md) | Second-click dismissal for audio and CPU | proposed |
 | [0012](./docs/adr/0012-unify-launcher-and-palette-on-elephant-menus.md) | Unify Launcher and System Palette | proposed |
-| [0013](./docs/adr/0013-promote-the-ratio-toggle-to-the-bar.md) | Ratio toggle onto the bar | proposed |
+| [0013](./docs/adr/0013-promote-the-ratio-toggle-to-the-bar.md) | Ratio toggle onto the bar | accepted |
 | [0014](./docs/adr/0014-ghostty-split-keybinds.md) | Ghostty split keybinds, and bind `close_surface` | accepted |
 | [0015](./docs/adr/0015-replace-tmux-with-herdr.md) | Replace tmux with herdr | proposed |
 | [0016](./docs/adr/0016-remote-access-from-the-macbook.md) | Reach this machine from the MacBook over Tailscale | proposed |
@@ -148,7 +148,7 @@ are the to-do list.
 - Work through the proposed ADRs above
 - Track the rest of `~/.local/bin` — `quick-menu`, `waybar-watchdog`, `pin-wallpaper`,
   `calendar-toggle`, `window-toggle`, `menu-toggle`, `toggle-appearance`,
-  `aether-theme`. Only `close-surface` and `tile-resize` are in the repo, so ADRs
+  `aether-theme`. Only `close-surface`, `tile-resize` and `ratio-toggle` are in the repo, so ADRs
   0005, 0007 and 0012 currently document behaviour that a rebuild would not reproduce
 - Settle wrap versus clamp for the Size ladder (ADR-0022) after using both, and put
   the switch in the Toggle Menu instead of `tile-resize --toggle-mode`
