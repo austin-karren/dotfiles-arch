@@ -114,6 +114,6 @@ can be toggled desktop-wide from the bar, and GNOME-style window buttons — the
 item, needing the `hyprbars` plugin via `hyprpm` and a rebuild against every Hyprland
 release.
 
-Also unbound and cheap if wanted: `general:snap`, Hyprland's built-in snapping for
-*dragged* floating windows, which exists and is currently `0`. Note the vocabulary
-collision — that is snap-on-drag, not the keyboard snapping in this ADR.
+`general:snap`, Hyprland's snapping for *dragged* floating windows, was the cheap
+companion to this and is now enabled — see ADR-0025. Note the vocabulary collision:
+that is **Drag snap**, not the **Keyboard snap** in this ADR.
