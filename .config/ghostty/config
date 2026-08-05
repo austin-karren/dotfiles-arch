@@ -29,6 +29,15 @@ keybind = control+insert=copy_to_clipboard
 keybind = shift+enter=csi:13;2u
 # Legacy encoding sends Alt+Shift+Enter the same as Alt+Enter; send CSI-u so tmux can match M-S-Enter.
 keybind = alt+shift+enter=csi:13;4u
+# Splits, macOS-style. Ghostty's defaults are ctrl+shift+o (right) and
+# ctrl+shift+e (down), but it ships NO binding for closing a split —
+# ctrl+shift+w is close_tab:this, which takes the whole tab with it.
+# close_surface closes the focused split, or the tab when it is the last one.
+keybind = super+d=new_split:right
+keybind = ctrl+shift+w=close_surface
+# super+shift+d (the macOS down-split) is unavailable: Hyprland binds it to
+# lazydocker, so it never reaches the terminal. Use ctrl+shift+e for down.
+
 keybind = super+control+shift+alt+arrow_down=resize_split:down,100
 keybind = super+control+shift+alt+arrow_up=resize_split:up,100
 keybind = super+control+shift+alt+arrow_left=resize_split:left,100
