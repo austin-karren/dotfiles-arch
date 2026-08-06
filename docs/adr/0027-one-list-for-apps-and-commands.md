@@ -22,27 +22,26 @@ frecency.
 
 Defining a menu provider keeps all of that native and adds nothing to maintain.
 
-## Two undocumented mechanisms make the ordering work
-
-Both established by querying elephant directly; neither is in the docs.
+## One undocumented mechanism makes the ordering work
 
 **With an empty query, Walker merges every provider into one list sorted by text.**
 Provider order in the query string has no effect — verified by swapping it and getting
-identical output. So commands would scatter alphabetically among applications:
-`Catppuccin` landed between `Calendar` and `Chromium` in the test.
+identical output.
 
-**A leading space in each entry's `Text` fixes that.** It sorts below every letter, so
-the palette clusters above `Aether` and the applications follow in their own run.
-Measured: with the space, position 0; without it, position 49 of 65. This is the whole
-reason every label in `palette.lua` begins with a space, and deleting it would silently
-scatter the commands.
+**`FixedOrder = true` overrides that for a menu provider**, and does so completely: the
+palette's entries stay contiguous, in definition order, ahead of the applications.
+Measured — the palette occupies positions 0–22 of 86, with `Aether` at 23.
 
-**`FixedOrder = true` survives the merge.** Without it the palette's own entries would be
-alphabetised too, losing Omarchy's Toggle Menu order. Verified by feeding in
-Zebra/Apple/Mango and getting them back in that order at the top.
+### Correction: the leading space was never load-bearing
 
-Together they give exactly the requested behaviour: commands first in Omarchy's order
-when the box is empty, and normal scoring across everything once you type.
+An earlier revision of this ADR claimed a leading space in each entry's `Text` was what
+sorted the palette above the applications, and cited a measurement of "position 0 with
+the space, 49 of 65 without". **That was wrong, and the measurement was mis-attributed.**
+The 49-of-65 case came from a scratch menu that did **not** set `fixed_order`; the
+follow-up test that did set it also had the leading space, so the two were never
+separated. `FixedOrder` alone was doing the work.
+
+The spaces are gone. They cost real alignment — see below — for nothing.
 
 ## Lua, not TOML
 
@@ -63,6 +62,36 @@ One genuine collision: **both lists had "Screensaver", with the same glyph and d
 actions** — Omarchy's toggles the feature on or off, `quick-menu`'s starts it now. Under
 the precedence rule Omarchy keeps the name; ours became **Start Screensaver**. Worth
 noticing because the two would have been indistinguishable in a merged list.
+
+## Row alignment
+
+Commands and applications share one list, so their rows have to share one grid. Two
+things were wrong once the palette landed:
+
+**The glyph belonged in the icon slot, not the label.** `item.xml` ships a dedicated
+`ItemImageFont` — a `GtkLabel` with `width-chars 2`, sitting in the same column as
+`ItemImage` — precisely for icons that are font glyphs. Embedding the glyph in `Text`
+instead put it inside the label widget, so the two row types indented by unrelated
+amounts: the glyph column sat 9px right of the applications' icons while its label sat
+8px left of theirs. Worse, that offset is *font-metric* driven, so any glyph with a
+different advance width shifts its own row.
+
+Entries now set `Icon` to the glyph and `Text` to the bare label.
+
+**`ItemImageFont` needed the same box as `ItemImage`.** It ships with no margin, so
+moving the glyph there fixed the icon column (2px residual) but pushed labels 22px left.
+`.item-image-text` now mirrors `.item-image`: `min-width: 18px; margin-right: 14px`.
+
+Measured after, in physical pixels at scale 1.667:
+
+| Row | icon left | label left |
+|---|---|---|
+| palette | 1452 | 1517 |
+| application | 1450 | 1516 |
+| websearch | 1446 | 1516 |
+
+One pixel — under a logical pixel, and from the glyph's font-derived natural width being
+a shade over 18px.
 
 ## min_score
 
