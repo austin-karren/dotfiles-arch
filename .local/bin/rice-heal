@@ -18,8 +18,12 @@
 
 set -uo pipefail
 
-RICE_ROOT="${RICE_ROOT:-$HOME/dotfiles}"
-STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/rice"
+# $RICE_HOME is $HOME everywhere except the test suite, which points it at a
+# fixture tree. Every path below derives from it, so nothing reaches the real
+# home directory unless it was asked to.
+RICE_HOME="${RICE_HOME:-$HOME}"
+RICE_ROOT="${RICE_ROOT:-$RICE_HOME/dotfiles}"
+STATE_DIR="${XDG_STATE_HOME:-$RICE_HOME/.local/state}/rice"
 APPLIED="$STATE_DIR/applied"
 dry_run=false
 [[ ${1:-} == --dry-run ]] && dry_run=true
@@ -42,7 +46,7 @@ printf '\033[1mHealing %s\033[0m%s\n' "$RICE_ROOT" "$($dry_run && echo ' (dry ru
 # ---------------------------------------------------------
 
 while IFS= read -r f; do
-  target="$HOME/$f"
+  target="$RICE_HOME/$f"
   # A real file where a symlink belongs means something overwrote us.
   if [[ -e $target && ! -L $target ]]; then
     if $dry_run; then
@@ -55,7 +59,7 @@ while IFS= read -r f; do
     act "restored $f — upstream's version kept as $(basename "$target").displaced.$stamp"
   fi
   # Same exclusions as rice-doctor: repo-only paths and Stow metadata never
-  # belong in $HOME, so a real file at those paths is not a displaced symlink.
+  # belong in $RICE_HOME, so a real file at those paths is not a displaced symlink.
 done < <(git -C "$RICE_ROOT" ls-files |
   grep -vE '^(docs/|packages/|migrations/|README|CONTEXT|packages\.txt|\.gitignore|\.stow-local-ignore)')
 

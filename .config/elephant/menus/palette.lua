@@ -37,7 +37,7 @@ Description = "System commands and toggles"
 -- Rank a match on the label above a match on the keywords, and both above the subtext.
 -- Without this, a query like "the" matches "End the session" / "Skip the boot menu" and
 -- buries the applications under commands that merely contain a common word.
-Priority = { "text", "keywords", "subtext" }
+-- PRIORITY-REMOVED-FOR-TEST
 
 local function cmd_ok(c)
   local ok = os.execute(c .. " >/dev/null 2>&1")
@@ -63,67 +63,56 @@ function GetEntries()
   -- Omarchy Toggle Menu, in Omarchy's order and under Omarchy's names.
   add({
     Text = " 󱄄  Screensaver",
-    Subtext = "Turn the screensaver on or off",
     Keywords = {"screensaver", "idle"},
     Actions = { activate = "omarchy-toggle-screensaver" },
   })
   add({
     Text = " 󰔎  Nightlight",
-    Subtext = "Warm the display colour temperature",
     Keywords = {"night", "blue light", "warm"},
     Actions = { activate = "omarchy-toggle-nightlight" },
   })
   add({
     Text = " 󱫖  Idle Lock",
-    Subtext = "Lock the screen after inactivity",
     Keywords = {"idle", "lock", "sleep"},
     Actions = { activate = "omarchy-toggle-idle" },
   })
   add({
     Text = " 󰂛  Notifications",
-    Subtext = "Silence or unsilence notifications",
     Keywords = {"dnd", "do not disturb", "silence"},
     Actions = { activate = "omarchy-toggle-notification-silencing" },
   })
   add({
     Text = " 󰍜  Top Bar",
-    Subtext = "Show or hide Waybar",
     Keywords = {"waybar", "bar", "panel"},
     Actions = { activate = "omarchy-toggle-waybar" },
   })
   add({
     Text = " 󱂬  Workspace Layout",
-    Subtext = "Switch between tiling layouts",
     Keywords = {"tiling", "dwindle", "master"},
     Actions = { activate = "omarchy-hyprland-workspace-layout-toggle" },
   })
   add({
     Text = "   Window Gaps",
-    Subtext = "Show or hide the gaps between windows",
     Keywords = {"gaps", "spacing"},
     Actions = { activate = "omarchy-hyprland-window-gaps-toggle" },
   })
   add({
     Text = "   1-Window Zen Ratio",
-    Subtext = "Hold a lone window to 6:5 instead of full width",
     Keywords = {"zen", "aspect", "ratio", "single window"},
     Actions = { activate = "ratio-toggle" },
   })
   add({
     Text = " 󰍹  Monitor Scaling",
-    Subtext = "Cycle the display scale",
     Keywords = {"scale", "hidpi", "resolution"},
     Actions = { activate = "omarchy-hyprland-monitor-scaling-cycle" },
   })
   add({
     Text = "   Direct Boot",
-    Subtext = "Skip the boot menu",
     Keywords = {"boot", "grub"},
     Actions = { activate = "omarchy-launch-floating-terminal-with-presentation omarchy-config-direct-boot" },
   })
   add({
     Text = " 󰟵  Passwordless Sudo",
-    Subtext = "Stop sudo asking for a password",
     Keywords = {"sudo", "password"},
     Actions = { activate = "omarchy-launch-floating-terminal-with-presentation omarchy-sudo-passwordless" },
   })
@@ -132,14 +121,12 @@ function GetEntries()
   if file_exists(os.getenv("HOME") .. "/.config/omarchy/current/theme/light.mode") then
     add({
       Text = " 󰖔  Switch to Dark",
-      Subtext = "Use the dark variant of the current theme",
       Keywords = {"dark", "appearance", "mode"},
       Actions = { activate = "toggle-appearance" },
     })
   else
     add({
       Text = " 󰖨  Switch to Light",
-      Subtext = "Use the light variant of the current theme",
       Keywords = {"light", "appearance", "mode"},
       Actions = { activate = "toggle-appearance" },
     })
@@ -147,44 +134,37 @@ function GetEntries()
 
   add({
     Text = " 󰇲  Emoji & Symbols",
-    Subtext = "Insert an emoji or symbol",
     Keywords = {"emoji", "symbol", "unicode"},
     Actions = { activate = "omarchy-launch-walker -m symbols" },
   })
   add({
     Text = " 󰅍  Clipboard History",
-    Subtext = "Paste something copied earlier",
     Keywords = {"clipboard", "paste", "history"},
     Actions = { activate = "omarchy-launch-walker -m clipboard" },
   })
   add({
     Text = " 󰸉  Wallpaper",
-    Subtext = "Change the background image",
     Keywords = {"background", "wallpaper"},
     Actions = { activate = "omarchy-menu background" },
   })
   add({
     Text = " 󰏘  Theme",
-    Subtext = "Change the colour theme",
     Keywords = {"theme", "colours", "appearance"},
     Actions = { activate = "omarchy-menu theme" },
   })
   add({
     Text = " 󱄄  Start Screensaver",
-    Subtext = "Run the screensaver now",
     Keywords = {"screensaver", "blank"},
     Actions = { activate = "omarchy-launch-screensaver force" },
   })
   add({
     Text = " 󰌾  Lock",
-    Subtext = "Lock the screen now",
     Keywords = {"lock", "secure"},
     Actions = { activate = "omarchy-system-lock" },
   })
   if not toggle_enabled("suspend-off") then
     add({
       Text = " 󰒲  Sleep",
-      Subtext = "Suspend to RAM",
       Keywords = {"suspend", "sleep"},
       Actions = { activate = "systemctl suspend" },
     })
@@ -192,26 +172,22 @@ function GetEntries()
   if cmd_ok("omarchy-hibernation-available") then
     add({
       Text = " 󰤁  Hibernate",
-      Subtext = "Suspend to disk",
       Keywords = {"hibernate"},
       Actions = { activate = "systemctl hibernate" },
     })
   end
   add({
     Text = " 󰍃  Log Out",
-    Subtext = "End the session",
     Keywords = {"logout", "sign out"},
     Actions = { activate = "omarchy-system-logout" },
   })
   add({
     Text = " 󰜉  Restart",
-    Subtext = "Reboot the machine",
     Keywords = {"reboot", "restart"},
     Actions = { activate = "omarchy-system-reboot" },
   })
   add({
     Text = " 󰐥  Shut Down",
-    Subtext = "Power off",
     Keywords = {"shutdown", "power off", "poweroff"},
     Actions = { activate = "omarchy-system-shutdown" },
   })

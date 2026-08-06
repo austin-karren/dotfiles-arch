@@ -12,7 +12,11 @@
 
 set -uo pipefail
 
-RICE_ROOT="${RICE_ROOT:-$HOME/dotfiles}"
+# $RICE_HOME is $HOME everywhere except the test suite, which points it at a
+# fixture tree. Every path below derives from it, so nothing reaches the real
+# home directory unless it was asked to.
+RICE_HOME="${RICE_HOME:-$HOME}"
+RICE_ROOT="${RICE_ROOT:-$RICE_HOME/dotfiles}"
 MANIFEST="$RICE_ROOT/packages/chosen.packages"
 quiet=false
 [[ ${1:-} == --quiet ]] && quiet=true
@@ -49,6 +53,6 @@ if [[ -f $RICE_ROOT/packages.txt ]]; then
   untracked=$(comm -13 <(sort -u "$RICE_ROOT/packages.txt") <(pacman -Qqe | sort -u) | wc -l)
   if ((untracked)); then
     printf '\n\033[33m!\033[0m %d package(s) installed since packages.txt was regenerated\n' "$untracked"
-    printf '    refresh the record:  pacman -Qqe > %s/packages.txt\n' "${RICE_ROOT/#$HOME/\~}"
+    printf '    refresh the record:  pacman -Qqe > %s/packages.txt\n' "${RICE_ROOT/#$RICE_HOME/\~}"
   fi
 fi
