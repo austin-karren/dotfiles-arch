@@ -23,12 +23,8 @@ OMARCHY_ROOT="${OMARCHY_PATH:-$RICE_HOME/.local/share/omarchy}"
 STATE_DIR="${XDG_STATE_HOME:-$RICE_HOME/.local/state}/rice"
 
 problems=0
-current_layer=""
 
-layer() {
-  current_layer=$1
-  printf '\n\033[1m%s\033[0m\n' "$1"
-}
+layer() { printf '\n\033[1m%s\033[0m\n' "$1"; }
 
 ok() { printf '  \033[32m✓\033[0m %-14s %s\n' "$1" "${2:-}"; }
 

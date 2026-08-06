@@ -24,6 +24,10 @@ set -uo pipefail
 RICE_HOME="${RICE_HOME:-$HOME}"
 RICE_ROOT="${RICE_ROOT:-$RICE_HOME/dotfiles}"
 STATE_DIR="${XDG_STATE_HOME:-$RICE_HOME/.local/state}/rice"
+# Migrations run as child processes and touch paths in the home directory, so
+# they need the same injectable root — otherwise a test migration would edit the
+# real $HOME.
+export RICE_HOME RICE_ROOT
 APPLIED="$STATE_DIR/applied"
 dry_run=false
 [[ ${1:-} == --dry-run ]] && dry_run=true
@@ -37,7 +41,9 @@ act() {
   printf '  \033[32m→\033[0m %s\n' "$1"
 }
 
-mkdir -p "$STATE_DIR"
+# Not before the dry-run check: creating the state directory is itself a write,
+# and --dry-run promises not to touch the disk.
+$dry_run || mkdir -p "$STATE_DIR"
 
 printf '\033[1mHealing %s\033[0m%s\n' "$RICE_ROOT" "$($dry_run && echo ' (dry run)')"
 
@@ -92,12 +98,13 @@ fi
 # Migrations exist because this machine cannot be rebuilt to get a fix — it is
 # the machine. Each is a one-shot, idempotent script named for the epoch second
 # it was written, applied once and recorded in the ledger.
-touch "$APPLIED"
+$dry_run || touch "$APPLIED"
 pending=()
 if [[ -d $RICE_ROOT/migrations ]]; then
   for m in "$RICE_ROOT"/migrations/*.sh; do
     [[ -e $m ]] || continue
-    grep -qxF "$(basename "$m")" "$APPLIED" || pending+=("$m")
+    # The ledger may not exist yet on a dry run, which is not an error.
+    grep -qxF "$(basename "$m")" "$APPLIED" 2>/dev/null || pending+=("$m")
   done
 fi
 
