@@ -1,24 +1,24 @@
 #!/bin/bash
 
-# rice:summary=Manage this machine's deviations from stock Omarchy
+# loaf:summary=Manage this machine's deviations from stock Omarchy
 
 # Dispatches `rice <command>` to a `rice-<command>` executable on PATH, the same
 # way the `omarchy` CLI dispatches to `omarchy-*`. Commands are discovered at run
 # time rather than listed here, so adding a script to ~/.local/bin is all it takes
-# for it to appear in the help below — it just needs a `# rice:summary=` line.
+# for it to appear in the help below — it just needs a `# loaf:summary=` line.
 
 set -euo pipefail
 
-# $RICE_HOME is $HOME everywhere except the test suite, which points it at a
+# $LOAF_HOME is $HOME everywhere except the test suite, which points it at a
 # fixture tree. Every path below derives from it, so nothing reaches the real
 # home directory unless it was asked to.
-RICE_HOME="${RICE_HOME:-$HOME}"
-RICE_ROOT="${RICE_ROOT:-$RICE_HOME/dotfiles}"
-export RICE_ROOT
+LOAF_HOME="${LOAF_HOME:-$HOME}"
+LOAF_ROOT="${LOAF_ROOT:-$LOAF_HOME/shokupan}"
+export LOAF_ROOT
 
 summary_of() {
   # Read the summary without executing the script.
-  sed -n 's/^# rice:summary=//p' "$1" | head -1
+  sed -n 's/^# loaf:summary=//p' "$1" | head -1
 }
 
 list_commands() {
@@ -35,10 +35,10 @@ list_commands() {
     [[ " ${seen[*]:-} " == *" $name "* ]] && continue
     seen+=("$name")
     printf '  %-10s %s\n' "$name" "$(summary_of "$path")"
-  done < <(compgen -c 'rice-' | sort -u | while read -r c; do command -v "$c"; done)
+  done < <(compgen -c 'loaf-' | sort -u | while read -r c; do command -v "$c"; done)
 
   echo
-  echo "Repo: $RICE_ROOT"
+  echo "Repo: $LOAF_ROOT"
 }
 
 case "${1:-}" in
@@ -51,10 +51,10 @@ esac
 command=$1
 shift
 
-if ! command -v "rice-$command" &>/dev/null; then
+if ! command -v "loaf-$command" &>/dev/null; then
   echo "rice: no such command '$command'" >&2
   echo "Run 'rice' to list what exists." >&2
   exit 1
 fi
 
-exec "rice-$command" "$@"
+exec "loaf-$command" "$@"

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# rice:summary=Check the three layers for drift, without changing anything
+# loaf:summary=Check the three layers for drift, without changing anything
 
 # This machine is three layers deep: CachyOS is the base, Omarchy is the desktop
 # layered on with a third-party bridge repo (ADR-0001), and the rice sits on top
@@ -13,11 +13,11 @@
 
 set -uo pipefail
 
-# $RICE_HOME is $HOME everywhere except the test suite, which points it at a
+# $LOAF_HOME is $HOME everywhere except the test suite, which points it at a
 # fixture tree. Every path below derives from it, so nothing reaches the real
 # home directory unless it was asked to.
-RICE_HOME="${RICE_HOME:-$HOME}"
-RICE_ROOT="${RICE_ROOT:-$RICE_HOME/dotfiles}"
+LOAF_HOME="${LOAF_HOME:-$HOME}"
+LOAF_ROOT="${LOAF_ROOT:-$LOAF_HOME/shokupan}"
 
 # Tracked paths that are repo furniture, not config, and so must never be
 # symlinked into the home directory. This has to agree with .stow-local-ignore
@@ -25,9 +25,9 @@ RICE_ROOT="${RICE_ROOT:-$RICE_HOME/dotfiles}"
 # doctor reports a file as missing that stow was never going to install. The
 # test suite asserts they stay in step.
 REPO_ONLY='^(docs/|packages/|migrations/|test/|README|CONTEXT|packages\.txt|\.gitignore|\.stow-local-ignore)'
-BRIDGE_ROOT="${BRIDGE_ROOT:-$RICE_HOME/omarchy-on-cachyos}"
-OMARCHY_ROOT="${OMARCHY_PATH:-$RICE_HOME/.local/share/omarchy}"
-STATE_DIR="${XDG_STATE_HOME:-$RICE_HOME/.local/state}/rice"
+BRIDGE_ROOT="${BRIDGE_ROOT:-$LOAF_HOME/omarchy-on-cachyos}"
+OMARCHY_ROOT="${OMARCHY_PATH:-$LOAF_HOME/.local/share/omarchy}"
+STATE_DIR="${XDG_STATE_HOME:-$LOAF_HOME/.local/state}/loaf"
 
 problems=0
 
@@ -65,7 +65,7 @@ else
   warn "bridge" "$BRIDGE_ROOT missing — cannot re-run the Omarchy installer"
 fi
 
-if [[ -d $RICE_HOME/omarchy ]]; then
+if [[ -d $LOAF_HOME/omarchy ]]; then
   # shellcheck disable=SC2088  # display text for a human, not a path to expand
   bad "stale clone" "~/omarchy exists again" \
       "ADR-0001: this is the wrong-path clone, it should not come back"
@@ -126,30 +126,30 @@ fi
 # Omarchy backs a file up as <name>.bak.<epoch> right before overwriting it. On a
 # stowed machine the thing it overwrote was one of our symlinks, so these are the
 # fingerprint of a config we may have silently lost.
-mapfile -t backups < <(find "$RICE_HOME/.config" -name '*.bak.*' -newer "$STATE_DIR/last-heal" 2>/dev/null)
+mapfile -t backups < <(find "$LOAF_HOME/.config" -name '*.bak.*' -newer "$STATE_DIR/last-heal" 2>/dev/null)
 if ((${#backups[@]})); then
   warn "clobbers" "${#backups[@]} config backup(s) since last heal"
-  printf '    %s\n' "${backups[@]#$RICE_HOME/}"
+  printf '    %s\n' "${backups[@]#$LOAF_HOME/}"
 fi
 
 # ---------------------------------------------------------
 # Rice — this repo
 # ---------------------------------------------------------
 
-layer "Rice ($RICE_ROOT)"
+layer "Rice ($LOAF_ROOT)"
 
-if [[ ! -d $RICE_ROOT/.git ]]; then
-  bad "repo" "$RICE_ROOT is not a git checkout"
+if [[ ! -d $LOAF_ROOT/.git ]]; then
+  bad "repo" "$LOAF_ROOT is not a git checkout"
   exit 1
 fi
 
-# Every tracked config file should reach $RICE_HOME as a symlink pointing back here.
+# Every tracked config file should reach $LOAF_HOME as a symlink pointing back here.
 # A real file means something overwrote the link and our version is not live.
 linked=0
 clobbered=()
 missing=()
 while IFS= read -r f; do
-  target="$RICE_HOME/$f"
+  target="$LOAF_HOME/$f"
   if [[ -L $target ]]; then
     linked=$((linked + 1))
   elif [[ -e $target ]]; then
@@ -158,32 +158,32 @@ while IFS= read -r f; do
     missing+=("$f")
   fi
   # Excludes repo-only paths (never stowed) and Stow's own metadata, which
-  # .stow-local-ignore deliberately keeps out of $RICE_HOME.
-done < <(git -C "$RICE_ROOT" ls-files |
+  # .stow-local-ignore deliberately keeps out of $LOAF_HOME.
+done < <(git -C "$LOAF_ROOT" ls-files |
   grep -vE "$REPO_ONLY")
 
 ((linked)) && ok "symlinks" "$linked live"
 ((${#clobbered[@]})) && bad "symlinks" "${#clobbered[@]} replaced by real files" "${clobbered[@]}"
 ((${#missing[@]})) && bad "symlinks" "${#missing[@]} not installed" "${missing[@]}"
 
-# Repo-only files must not be stowed into $RICE_HOME. Anything matched here escaped
+# Repo-only files must not be stowed into $LOAF_HOME. Anything matched here escaped
 # .stow-local-ignore.
 leaks=()
 for f in CONTEXT.md README.md packages.txt docs packages migrations; do
   # shellcheck disable=SC2088  # leaks is only ever printed, never used as a path
-  [[ -e $RICE_HOME/$f ]] && leaks+=("~/$f")
+  [[ -e $LOAF_HOME/$f ]] && leaks+=("~/$f")
 done
 if ((${#leaks[@]})); then
-  bad "leaks" "${#leaks[@]} repo-only path(s) in \$RICE_HOME" "${leaks[@]}" \
+  bad "leaks" "${#leaks[@]} repo-only path(s) in \$LOAF_HOME" "${leaks[@]}" \
     "add them to .stow-local-ignore, then remove the links"
 else
-  ok "leaks" "no repo-only paths in \$RICE_HOME"
+  ok "leaks" "no repo-only paths in \$LOAF_HOME"
 fi
 
-if [[ -n $(git -C "$RICE_ROOT" status --porcelain) ]]; then
+if [[ -n $(git -C "$LOAF_ROOT" status --porcelain) ]]; then
   # One array element per line: bad() indents each detail, so passing the whole
   # status as a single argument would leave every line after the first flush left.
-  mapfile -t dirty < <(git -C "$RICE_ROOT" status --short | sed -n '1,6p')
+  mapfile -t dirty < <(git -C "$LOAF_ROOT" status --short | sed -n '1,6p')
   bad "git" "uncommitted changes" "${dirty[@]}"
 else
   ok "git" "clean"
@@ -195,7 +195,7 @@ fi
 
 layer "Packages"
 
-if rice-packages --quiet 2>/dev/null; then
+if loaf-packages --quiet 2>/dev/null; then
   ok "manifest" "all chosen packages installed"
 else
   bad "manifest" "manifest and system disagree" "run 'rice packages' for the diff"
@@ -204,9 +204,9 @@ fi
 layer "Migrations"
 
 pending=0
-if [[ -d $RICE_ROOT/migrations ]]; then
+if [[ -d $LOAF_ROOT/migrations ]]; then
   applied="$STATE_DIR/applied"
-  for m in "$RICE_ROOT"/migrations/*.sh; do
+  for m in "$LOAF_ROOT"/migrations/*.sh; do
     [[ -e $m ]] || continue
     grep -qxF "$(basename "$m")" "$applied" 2>/dev/null || pending=$((pending + 1))
   done

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# rice:summary=Diff the package manifest against what is installed
-# rice:args=[--quiet]
+# loaf:summary=Diff the package manifest against what is installed
+# loaf:args=[--quiet]
 
 # Compares packages/chosen.packages (the decision) against pacman's idea of what
 # is explicitly installed (the fact). Reports both directions: manifest entries
@@ -12,12 +12,12 @@
 
 set -uo pipefail
 
-# $RICE_HOME is $HOME everywhere except the test suite, which points it at a
+# $LOAF_HOME is $HOME everywhere except the test suite, which points it at a
 # fixture tree. Every path below derives from it, so nothing reaches the real
 # home directory unless it was asked to.
-RICE_HOME="${RICE_HOME:-$HOME}"
-RICE_ROOT="${RICE_ROOT:-$RICE_HOME/dotfiles}"
-MANIFEST="$RICE_ROOT/packages/chosen.packages"
+LOAF_HOME="${LOAF_HOME:-$HOME}"
+LOAF_ROOT="${LOAF_ROOT:-$LOAF_HOME/shokupan}"
+MANIFEST="$LOAF_ROOT/packages/chosen.packages"
 quiet=false
 [[ ${1:-} == --quiet ]] && quiet=true
 
@@ -49,10 +49,10 @@ $quiet && exit 0
 # The other direction is advisory, not a failure: most explicitly-installed
 # packages are CachyOS base and Omarchy dependencies, not choices. Only worth
 # surfacing when the record has grown since it was last regenerated.
-if [[ -f $RICE_ROOT/packages.txt ]]; then
-  untracked=$(comm -13 <(sort -u "$RICE_ROOT/packages.txt") <(pacman -Qqe | sort -u) | wc -l)
+if [[ -f $LOAF_ROOT/packages.txt ]]; then
+  untracked=$(comm -13 <(sort -u "$LOAF_ROOT/packages.txt") <(pacman -Qqe | sort -u) | wc -l)
   if ((untracked)); then
     printf '\n\033[33m!\033[0m %d package(s) installed since packages.txt was regenerated\n' "$untracked"
-    printf '    refresh the record:  pacman -Qqe > %s/packages.txt\n' "${RICE_ROOT/#$RICE_HOME/\~}"
+    printf '    refresh the record:  pacman -Qqe > %s/packages.txt\n' "${LOAF_ROOT/#$LOAF_HOME/\~}"
   fi
 fi

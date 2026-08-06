@@ -1,11 +1,16 @@
-# Arch Dotfiles (CachyOS + Omarchy)
+# Shokupan
 
-Configuration for my CachyOS machine running [Omarchy](https://omarchy.org) on
-Hyprland. Managed with [GNU Stow](https://www.gnu.org/software/stow/), same as my
-[macOS dotfiles](https://github.com/austin-karren/dotfiles) — but kept as a
-separate repo, because the two platforms share almost nothing beyond `.gitconfig`.
+My rice: one CachyOS machine running [Omarchy](https://omarchy.org) on Hyprland,
+managed with [GNU Stow](https://www.gnu.org/software/stow/) and maintained by a
+small CLI called `loaf`.
 
-The shell here is bash (Omarchy's), not the zsh setup from the macOS repo.
+Named for 食パン, Japanese milk bread. A rice can be named anything — "rice" is
+just the term for a customized desktop, so the bread is a joke rather than a
+category error.
+
+Kept separate from my [macOS dotfiles](https://github.com/austin-karren/dotfiles)
+because the two platforms share almost nothing beyond `.gitconfig`. The shell
+here is bash (Omarchy's), not the zsh setup from that repo.
 
 ## Layout
 
@@ -22,12 +27,16 @@ This is a single flat Stow package: paths mirror `$HOME` directly.
 
 ```bash
 cd ~
-gh repo clone austin-karren/dotfiles-arch dotfiles
-cd dotfiles
+gh repo clone austin-karren/shokupan
+cd shokupan
 sudo pacman -S --needed stow
 stow --adopt .   # --adopt takes ownership of existing files in place
 git diff         # review what --adopt pulled in from the live system
+loaf doctor      # confirm all three layers agree
 ```
+
+The directory name matters: `loaf` defaults to `~/shokupan` when `LOAF_ROOT` is
+unset, so cloning it anywhere else means exporting that variable.
 
 `--adopt` moves your existing config files into the repo and replaces them with
 symlinks. If the live files differ from what's committed, `--adopt` **overwrites
@@ -91,8 +100,8 @@ it can also override anything the tracked `.bashrc` set.
 | `.config/omarchy/extensions/menu.sh` | Omarchy menu overrides — the sanctioned extension point, not a patched Omarchy file |
 | `.config/starship.toml`, `.config/tmux/` | Prompt and multiplexer |
 | `.bashrc` | Thin — sources Omarchy's `default/bash/rc` |
-| `.local/bin/` | The `rice` CLI, plus every script a keybinding or bar module depends on. The npx shims (`codex`, `gemini`, …) stay untracked — they are generated, not config |
-| `.config/omarchy/hooks/post-update.d/` | Runs `rice heal` after each `omarchy update` — the sanctioned hook directory, not a patched Omarchy file |
+| `.local/bin/` | The `loaf` CLI, plus every script a keybinding or bar module depends on. The npx shims (`codex`, `gemini`, …) stay untracked — they are generated, not config |
+| `.config/omarchy/hooks/post-update.d/` | Runs `loaf heal` after each `omarchy update` — the sanctioned hook directory, not a patched Omarchy file |
 | `packages/`, `migrations/` | Repo-only: the package manifest, and one-shot fixes for state that lives outside the repo |
 
 ### Deliberately not tracked
@@ -101,27 +110,27 @@ it can also override anything the tracked `.bashrc` set.
 - **`~/.XCompose`** — contains a literal email expansion; kept out of a public repo.
 - **`*.bak.<timestamp>`** — Omarchy migration artifacts, not config.
 
-## The `rice` command
+## The `loaf` command
 
 Stow installs the symlinks once. It has no opinion about what happens to them
 afterwards — and on this machine CachyOS and Omarchy both update underneath the
 rice, with Omarchy's migrations rewriting files in `~/.config` that are our
-symlinks. `rice` is the part that notices.
+symlinks. `loaf` is the part that notices.
 
 ```bash
-rice              # list commands
-rice doctor       # check all three layers for drift — read-only, no sudo
-rice heal         # re-assert the rice on top, apply pending migrations
-rice packages     # diff the manifest against what is installed
+loaf              # list commands
+loaf doctor       # check all three layers for drift — read-only, no sudo
+loaf heal         # re-assert the rice on top, apply pending migrations
+loaf packages     # diff the manifest against what is installed
 ```
 
-`rice heal` runs automatically after every `omarchy update`, via
-`.config/omarchy/hooks/post-update.d/10-rice-heal`. Files that displaced one of
+`loaf heal` runs automatically after every `omarchy update`, via
+`.config/omarchy/hooks/post-update.d/10-loaf-heal`. Files that displaced one of
 our symlinks are kept as `.displaced.<epoch>` rather than deleted — that is
 upstream's new default, usually worth reading first.
 
-Commands are discovered at run time from `rice-*` on PATH, so a new script in
-`.local/bin` shows up in the help as soon as it carries a `# rice:summary=` line.
+Commands are discovered at run time from `loaf-*` on PATH, so a new script in
+`.local/bin` shows up in the help as soon as it carries a `# loaf:summary=` line.
 
 See [ADR-0028](./docs/adr/0028-the-rice-re-asserts-itself-after-upstream-updates.md)
 for why this exists and why migrations are worth having on a single machine.
@@ -132,7 +141,7 @@ Two files, doing different jobs:
 
 - **`packages/chosen.packages`** is the manifest — packages deliberately added on
   top of the CachyOS + Omarchy baseline. Hand-maintained, in Omarchy's own
-  `install/*.packages` format. `rice packages` diffs it against what is
+  `install/*.packages` format. `loaf packages` diffs it against what is
   installed.
 - **`packages.txt`** is the record — the raw output of `pacman -Qqe`, every
   explicitly-installed package on the machine.
@@ -204,10 +213,10 @@ are the to-do list.
 ## To do
 
 - Work through the proposed ADRs above
-- Teach `rice doctor` to check the things it currently cannot: that Waybar's
+- Teach `loaf doctor` to check the things it currently cannot: that Waybar's
   watchdog is actually running, and that the pinned wallpaper survived the last
   theme change. Both are ADR'd behaviours with no assertion behind them
-- Decide whether `rice heal` should ever act on `.displaced.*` files, or only
+- Decide whether `loaf heal` should ever act on `.displaced.*` files, or only
   ever leave them for a human to read
 - Settle wrap versus clamp for the Size ladder (ADR-0022) after using both, and put
   the switch in the Toggle Menu instead of `window-resize --toggle-mode`
