@@ -10,10 +10,10 @@
 # broken because the rice needs attention — heal says what it did, doctor is
 # there to be run deliberately.
 
-command -v rice-heal &>/dev/null || exit 0
+command -v loaf-heal &>/dev/null || exit 0
 
 echo
 echo "Re-asserting the rice on top of the update..."
-rice-heal || echo "rice heal reported problems — run 'rice doctor' for detail"
+loaf-heal || echo "rice heal reported problems — run 'rice doctor' for detail"
 
 exit 0

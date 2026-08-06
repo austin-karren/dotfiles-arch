@@ -1,4 +1,4 @@
-# Rice
+# Shokupan
 
 The configuration of one desktop: CachyOS running Omarchy on Hyprland. This
 glossary exists because the vocabulary here is genuinely ambiguous — Omarchy,
@@ -7,6 +7,19 @@ to mean different things, and three of the menus are one keystroke apart.
 
 ## Layers
 
+**Shokupan**:
+The proper name of this rice — this specific set of deviations, this repo. A
+rice can be named anything; 食パン is Japanese milk bread, which has nothing to
+do with the generic term below beyond the joke.
+_Avoid_: the rice (ambiguous once there are others), dotfiles, shokupan-arch
+
+**Loaf**:
+The CLI that maintains Shokupan — `loaf doctor`, `loaf heal`, `loaf packages`.
+Deliberately not named `shokupan`: it gets typed constantly, and four characters
+beat eight. Also deliberately not `pan`, which is a real package (a Usenet
+newsreader) in `cachyos-extra-znver4` and would collide if ever installed.
+_Avoid_: rice (the old name), shokupan (that is the rice, not the tool)
+
 **Omarchy**:
 The upstream desktop layer installed at `~/.local/share/omarchy`, managed by its
 own git checkout and updated with `omarchy update`. Read-only to us.
@@ -14,7 +27,8 @@ _Avoid_: the distro, upstream
 
 **Rice**:
 The set of deliberate deviations from a stock Omarchy install — everything this
-repo tracks, plus the helper scripts in `~/.local/bin`.
+repo tracks, plus the helper scripts in `~/.local/bin`. The common noun: any
+customized desktop is a rice. This one is called Shokupan.
 _Avoid_: dotfiles (that is the repo), config
 
 **Machine-side**:
@@ -37,7 +51,7 @@ _Avoid_: distro, system, OS (each is ambiguous between the base and Omarchy)
 Of a tracked config: overwritten by an upstream update, so the symlink is gone
 and our version is no longer live. The distinguishing feature is that `git
 status` stays clean — the repo file was never touched, it just stopped being
-what `$HOME` points at. What `rice heal` restores, keeping the upstream file as
+what `$HOME` points at. What `loaf heal` restores, keeping the upstream file as
 `.displaced.<epoch>`.
 _Avoid_: clobbered, overwritten, broken (none of them say that the repo is fine
 and only the link is wrong)
@@ -54,7 +68,7 @@ whole point)
 A one-shot idempotent script for state that lives *outside* the repo, where
 stowing a file cannot reach — a stale symlink, a state file, something Omarchy
 wrote once. Named for the epoch second it was written, recorded in
-`~/.local/state/rice/applied` once it succeeds. Distinct from an **Omarchy
+`~/.local/state/loaf/applied` once it succeeds. Distinct from an **Omarchy
 migration**, which is upstream's and runs on `omarchy update`.
 _Avoid_: migration (unqualified), fix script, patch
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# rice:summary=Re-assert the rice on top of whatever the base layers did
-# rice:args=[--dry-run]
+# loaf:summary=Re-assert the rice on top of whatever the base layers did
+# loaf:args=[--dry-run]
 
 # The reconciliation half of `rice doctor`. Runs after an Omarchy or CachyOS
 # update — automatically via ~/.config/omarchy/hooks/post-update.d — to put the
@@ -18,19 +18,19 @@
 
 set -uo pipefail
 
-# $RICE_HOME is $HOME everywhere except the test suite, which points it at a
+# $LOAF_HOME is $HOME everywhere except the test suite, which points it at a
 # fixture tree. Every path below derives from it, so nothing reaches the real
 # home directory unless it was asked to.
-RICE_HOME="${RICE_HOME:-$HOME}"
-RICE_ROOT="${RICE_ROOT:-$RICE_HOME/dotfiles}"
-STATE_DIR="${XDG_STATE_HOME:-$RICE_HOME/.local/state}/rice"
+LOAF_HOME="${LOAF_HOME:-$HOME}"
+LOAF_ROOT="${LOAF_ROOT:-$LOAF_HOME/shokupan}"
+STATE_DIR="${XDG_STATE_HOME:-$LOAF_HOME/.local/state}/loaf"
 # Migrations run as child processes and touch paths in the home directory, so
 # they need the same injectable root — otherwise a test migration would edit the
 # real $HOME.
-export RICE_HOME RICE_ROOT
+export LOAF_HOME LOAF_ROOT
 APPLIED="$STATE_DIR/applied"
 
-# Must match rice-doctor's list and .stow-local-ignore — see the note there.
+# Must match loaf-doctor's list and .stow-local-ignore — see the note there.
 REPO_ONLY='^(docs/|packages/|migrations/|test/|README|CONTEXT|packages\.txt|\.gitignore|\.stow-local-ignore)'
 dry_run=false
 [[ ${1:-} == --dry-run ]] && dry_run=true
@@ -48,14 +48,14 @@ act() {
 # and --dry-run promises not to touch the disk.
 $dry_run || mkdir -p "$STATE_DIR"
 
-printf '\033[1mHealing %s\033[0m%s\n' "$RICE_ROOT" "$($dry_run && echo ' (dry run)')"
+printf '\033[1mHealing %s\033[0m%s\n' "$LOAF_ROOT" "$($dry_run && echo ' (dry run)')"
 
 # ---------------------------------------------------------
 # 1. Restore symlinks the base layers displaced
 # ---------------------------------------------------------
 
 while IFS= read -r f; do
-  target="$RICE_HOME/$f"
+  target="$LOAF_HOME/$f"
   # A real file where a symlink belongs means something overwrote us.
   if [[ -e $target && ! -L $target ]]; then
     if $dry_run; then
@@ -64,12 +64,12 @@ while IFS= read -r f; do
     fi
     mv "$target" "$target.displaced.$stamp"
     mkdir -p "$(dirname "$target")"
-    ln -s "$(realpath --relative-to="$(dirname "$target")" "$RICE_ROOT/$f")" "$target"
+    ln -s "$(realpath --relative-to="$(dirname "$target")" "$LOAF_ROOT/$f")" "$target"
     act "restored $f — upstream's version kept as $(basename "$target").displaced.$stamp"
   fi
-  # Same exclusions as rice-doctor: repo-only paths and Stow metadata never
-  # belong in $RICE_HOME, so a real file at those paths is not a displaced symlink.
-done < <(git -C "$RICE_ROOT" ls-files |
+  # Same exclusions as loaf-doctor: repo-only paths and Stow metadata never
+  # belong in $LOAF_HOME, so a real file at those paths is not a displaced symlink.
+done < <(git -C "$LOAF_ROOT" ls-files |
   grep -vE "$REPO_ONLY")
 
 # ---------------------------------------------------------
@@ -80,9 +80,9 @@ if command -v stow &>/dev/null; then
   # --no-folding keeps directories real, so Omarchy dropping a new file into
   # ~/.config/hypr does not land inside the repo by way of a folded directory.
   if $dry_run; then
-    stow_out=$(cd "$RICE_ROOT" && stow --simulate --no-folding . 2>&1)
+    stow_out=$(cd "$LOAF_ROOT" && stow --simulate --no-folding . 2>&1)
   else
-    stow_out=$(cd "$RICE_ROOT" && stow --no-folding . 2>&1)
+    stow_out=$(cd "$LOAF_ROOT" && stow --no-folding . 2>&1)
   fi
   if [[ -n $stow_out ]]; then
     act "stow:"
@@ -103,8 +103,8 @@ fi
 # it was written, applied once and recorded in the ledger.
 $dry_run || touch "$APPLIED"
 pending=()
-if [[ -d $RICE_ROOT/migrations ]]; then
-  for m in "$RICE_ROOT"/migrations/*.sh; do
+if [[ -d $LOAF_ROOT/migrations ]]; then
+  for m in "$LOAF_ROOT"/migrations/*.sh; do
     [[ -e $m ]] || continue
     # The ledger may not exist yet on a dry run, which is not an error.
     grep -qxF "$(basename "$m")" "$APPLIED" 2>/dev/null || pending+=("$m")

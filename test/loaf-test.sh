@@ -1,17 +1,17 @@
 #!/bin/bash
 
-# Tests for the rice CLI.
+# Tests for the loaf CLI, which maintains the Shokupan rice.
 #
-# No framework on purpose. `rice heal` runs from Omarchy's post-update.d hook, so
+# No framework on purpose. `loaf heal` runs from Omarchy's post-update.d hook, so
 # anything needed to test it would become a dependency of the update path. This
 # emits TAP and follows the shape of Omarchy's own test/omarchy-cli-test.sh.
 #
-# Every test builds a throwaway home under $BUILD and points RICE_HOME at it, so
+# Every test builds a throwaway home under $BUILD and points LOAF_HOME at it, so
 # nothing here can touch the real one. `pacman` and the Omarchy tree are stubbed;
 # `git` and `stow` are real, because what they do to a fixture is exactly what
 # they would do to the machine.
 #
-# Run: test/rice-test.sh
+# Run: test/loaf-test.sh
 
 set -uo pipefail
 
@@ -97,7 +97,7 @@ make_home() {
     mkdir -p "$home/.config/hypr" "$home/.local/state"
 
   # The rice repo
-    local repo="$home/dotfiles"
+    local repo="$home/shokupan"
     mkdir -p "$repo/.config/hypr" "$repo/packages" "$repo/migrations"
     echo "# tracked config" >"$repo/.config/hypr/looknfeel.conf"
     printf 'bat\n' >"$repo/packages/chosen.packages"
@@ -146,15 +146,15 @@ STUB
 chmod +x "$BUILD/stub/pacman"
 
 # Run a rice command against a fixture home.
-rice_run() {
+loaf_run() {
   local home=$1 cmd=$2
   shift 2
-  RICE_HOME="$home" RICE_ROOT="$home/dotfiles" \
+  LOAF_HOME="$home" LOAF_ROOT="$home/shokupan" \
     OMARCHY_PATH="$home/.local/share/omarchy" \
     BRIDGE_ROOT="$home/omarchy-on-cachyos" \
     XDG_STATE_HOME="$home/.local/state" \
     PATH="$BUILD/stub:$ROOT/.local/bin:$PATH" \
-    "rice-$cmd" "$@" 2>&1
+    "loaf-$cmd" "$@" 2>&1
 }
 
 # ---------------------------------------------------------
@@ -162,9 +162,9 @@ rice_run() {
 # ---------------------------------------------------------
 
 home=$(make_home)
-(cd "$home/dotfiles" && stow --no-folding -t "$home" . 2>/dev/null)
+(cd "$home/shokupan" && stow --no-folding -t "$home" . 2>/dev/null)
 
-out=$(rice_run "$home" doctor)
+out=$(loaf_run "$home" doctor)
 status=$?
 assert_contains "doctor: clean fixture reports no problems" "$out" "No problems"
 assert_equals "doctor: clean fixture exits 0" "$status" "0"
@@ -174,11 +174,11 @@ assert_contains "doctor: confirms cachyos adaptations intact" "$out" "adaptation
 # A displaced symlink — the failure the whole thing exists for. Note git stays
 # clean throughout, which is why nothing else would catch this.
 home=$(make_home)
-(cd "$home/dotfiles" && stow --no-folding -t "$home" . 2>/dev/null)
+(cd "$home/shokupan" && stow --no-folding -t "$home" . 2>/dev/null)
 rm "$home/.config/hypr/looknfeel.conf"
 echo "upstream default" >"$home/.config/hypr/looknfeel.conf"
 
-out=$(rice_run "$home" doctor)
+out=$(loaf_run "$home" doctor)
 status=$?
 assert_contains "doctor: detects a displaced symlink" "$out" "replaced by real files"
 assert_equals "doctor: exits non-zero on drift" "$status" "1"
@@ -186,26 +186,26 @@ assert_equals "doctor: exits non-zero on drift" "$status" "1"
 # A repo-only path leaked into $HOME by stow
 home=$(make_home)
 touch "$home/CONTEXT.md"
-out=$(rice_run "$home" doctor)
+out=$(loaf_run "$home" doctor)
 assert_contains "doctor: detects a leaked repo-only path" "$out" "repo-only path"
 
 # A reverted CachyOS adaptation
 home=$(make_home)
 printf 'tldr\n' >>"$home/.local/share/omarchy/install/omarchy-base.packages"
-out=$(rice_run "$home" doctor)
+out=$(loaf_run "$home" doctor)
 assert_contains "doctor: detects a reverted bridge adaptation" "$out" "conflicts with tealdeer"
 
 # The stale clone ADR-0001 warns about
 home=$(make_home)
 mkdir -p "$home/omarchy"
-out=$(rice_run "$home" doctor)
+out=$(loaf_run "$home" doctor)
 assert_contains "doctor: detects the stale ~/omarchy clone" "$out" "stale clone"
 
 # Read-only by construction: a dirty fixture must be unchanged afterwards.
 home=$(make_home)
 touch "$home/CONTEXT.md"
 before=$(find "$home" -not -path '*/.git/*' | sort | md5sum)
-rice_run "$home" doctor >/dev/null
+loaf_run "$home" doctor >/dev/null
 after=$(find "$home" -not -path '*/.git/*' | sort | md5sum)
 assert_equals "doctor: changes nothing on disk" "$before" "$after"
 
@@ -216,11 +216,11 @@ assert_equals "doctor: changes nothing on disk" "$before" "$after"
 # The critical one. A bug here costs real data, so it is asserted directly:
 # the displaced file must still exist, with its contents, after healing.
 home=$(make_home)
-(cd "$home/dotfiles" && stow --no-folding -t "$home" . 2>/dev/null)
+(cd "$home/shokupan" && stow --no-folding -t "$home" . 2>/dev/null)
 rm "$home/.config/hypr/looknfeel.conf"
 echo "upstream default" >"$home/.config/hypr/looknfeel.conf"
 
-out=$(rice_run "$home" heal)
+out=$(loaf_run "$home" heal)
 assert_symlink "heal: restores the displaced symlink" "$home/.config/hypr/looknfeel.conf"
 displaced=$(find "$home/.config/hypr" -name 'looknfeel.conf.displaced.*' | head -1)
 assert_file_exists "heal: NEVER deletes the file it displaced" "$displaced"
@@ -230,47 +230,47 @@ assert_equals "heal: restored symlink points at the repo" \
 
 # Dry run must not touch anything
 home=$(make_home)
-(cd "$home/dotfiles" && stow --no-folding -t "$home" . 2>/dev/null)
+(cd "$home/shokupan" && stow --no-folding -t "$home" . 2>/dev/null)
 rm "$home/.config/hypr/looknfeel.conf"
 echo "upstream default" >"$home/.config/hypr/looknfeel.conf"
 before=$(find "$home" -not -path '*/.git/*' | sort | md5sum)
-out=$(rice_run "$home" heal --dry-run)
+out=$(loaf_run "$home" heal --dry-run)
 after=$(find "$home" -not -path '*/.git/*' | sort | md5sum)
 assert_equals "heal: --dry-run changes nothing" "$before" "$after"
 assert_contains "heal: --dry-run still reports what it would do" "$out" "would restore"
 
 # Migrations: applied once, recorded, never re-applied
 home=$(make_home)
-cat >"$home/dotfiles/migrations/1000000000.sh" <<'M'
+cat >"$home/shokupan/migrations/1000000000.sh" <<'M'
 echo "test migration"
-echo ran >>"$RICE_HOME/migration-ran"
+echo ran >>"$LOAF_HOME/migration-ran"
 M
-out=$(rice_run "$home" heal)
+out=$(loaf_run "$home" heal)
 assert_contains "heal: applies a pending migration" "$out" "applied 1000000000.sh"
 assert_equals "heal: migration ran exactly once" "$(wc -l <"$home/migration-ran")" "1"
 
-out=$(rice_run "$home" heal)
+out=$(loaf_run "$home" heal)
 assert_contains "heal: second run reports none pending" "$out" "none pending"
 assert_equals "heal: migration still ran only once" "$(wc -l <"$home/migration-ran")" "1"
 assert_contains "heal: records the migration in the ledger" \
-  "$(cat "$home/.local/state/rice/applied")" "1000000000.sh"
+  "$(cat "$home/.local/state/loaf/applied")" "1000000000.sh"
 
 # A failing migration must not be recorded, so it retries
 home=$(make_home)
-printf 'exit 1\n' >"$home/dotfiles/migrations/1000000001.sh"
-out=$(rice_run "$home" heal)
+printf 'exit 1\n' >"$home/shokupan/migrations/1000000001.sh"
+out=$(loaf_run "$home" heal)
 status=$?
 assert_contains "heal: reports a failed migration" "$out" "will retry"
 assert_equals "heal: exits non-zero when a migration fails" "$status" "1"
 assert_not_contains "heal: does NOT record a failed migration" \
-  "$(cat "$home/.local/state/rice/applied" 2>/dev/null)" "1000000001.sh"
+  "$(cat "$home/.local/state/loaf/applied" 2>/dev/null)" "1000000001.sh"
 
 # Idempotence: healing a healthy machine is a no-op
 home=$(make_home)
-(cd "$home/dotfiles" && stow --no-folding -t "$home" . 2>/dev/null)
-rice_run "$home" heal >/dev/null
+(cd "$home/shokupan" && stow --no-folding -t "$home" . 2>/dev/null)
+loaf_run "$home" heal >/dev/null
 before=$(find "$home" -not -path '*/.git/*' -not -name last-heal | sort | md5sum)
-out=$(rice_run "$home" heal)
+out=$(loaf_run "$home" heal)
 after=$(find "$home" -not -path '*/.git/*' -not -name last-heal | sort | md5sum)
 assert_equals "heal: is idempotent" "$before" "$after"
 assert_contains "heal: says so" "$out" "Nothing to heal"
@@ -280,15 +280,15 @@ assert_contains "heal: says so" "$out" "Nothing to heal"
 # ---------------------------------------------------------
 
 home=$(make_home)
-out=$(RICE_HOME="$home" PATH="$ROOT/.local/bin:$PATH" rice 2>&1)
-assert_contains "rice: lists doctor" "$out" "doctor"
-assert_contains "rice: lists heal" "$out" "heal"
-assert_contains "rice: shows summaries from the rice:summary= line" "$out" "without changing anything"
+out=$(LOAF_HOME="$home" PATH="$ROOT/.local/bin:$PATH" loaf 2>&1)
+assert_contains "loaf: lists doctor" "$out" "doctor"
+assert_contains "loaf: lists heal" "$out" "heal"
+assert_contains "loaf: shows summaries from the loaf:summary= line" "$out" "without changing anything"
 
-out=$(RICE_HOME="$home" PATH="$ROOT/.local/bin:$PATH" rice nonesuch 2>&1)
+out=$(LOAF_HOME="$home" PATH="$ROOT/.local/bin:$PATH" loaf nonesuch 2>&1)
 status=$?
-assert_contains "rice: rejects an unknown command" "$out" "no such command"
-assert_equals "rice: exits non-zero on an unknown command" "$status" "1"
+assert_contains "loaf: rejects an unknown command" "$out" "no such command"
+assert_equals "loaf: exits non-zero on an unknown command" "$status" "1"
 
 # ---------------------------------------------------------
 # repo-only paths
@@ -303,7 +303,7 @@ while IFS= read -r line; do
   # Only the top-level anchored entries; the rest are Stow's own defaults.
   [[ $line =~ ^\^/([A-Za-z_.\\]+)\$$ ]] || continue
   name=${BASH_REMATCH[1]//\\/}
-  for s in rice-doctor rice-heal; do
+  for s in loaf-doctor loaf-heal; do
     grep -q "REPO_ONLY=.*${name%%.*}" "$ROOT/.local/bin/$s" ||
       missing_from_scripts+=("$name missing from $s")
   done

@@ -9,12 +9,18 @@ echo "Remove repo-only paths that Stow leaked into \$HOME"
 #
 # Only removes the link if it still points into the repo. A real ~/docs that the
 # user created on purpose is left alone.
+#
+# The repo basename is read from LOAF_ROOT rather than hardcoded: this migration
+# was written when the repo was ~/dotfiles, and a literal would have quietly
+# stopped matching when it became ~/shokupan — a no-op that looks like success.
+
+repo=$(basename "${LOAF_ROOT:-$HOME/shokupan}")
 
 for name in CONTEXT.md README.md docs packages migrations; do
-  path="${RICE_HOME:-$HOME}/$name"
+  path="${LOAF_HOME:-$HOME}/$name"
   [[ -L $path ]] || continue
   case "$(readlink "$path")" in
-  *dotfiles/*)
+  *"$repo"/* | *dotfiles/*)
     rm "$path"
     echo "  removed ~/$name"
     ;;
