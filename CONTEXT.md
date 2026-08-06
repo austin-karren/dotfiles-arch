@@ -24,8 +24,39 @@ _Avoid_: local, untracked, ignored
 
 **Identity file**:
 A machine-side file holding a name or email address, included by a tracked file
-that itself contains no identity. `~/.gitconfig.local` is the reference example.
+that itself contains no identity. `~/.gitconfig.local` is the reference example;
+`~/.bashrc.local` is the same pattern for the shell.
 _Avoid_: secrets file, private config
+
+**Base**:
+CachyOS, and the bridge repo that layered Omarchy onto it (ADR-0001). The bottom
+of the three layers, and the one this repo has least control over.
+_Avoid_: distro, system, OS (each is ambiguous between the base and Omarchy)
+
+**Displaced**:
+Of a tracked config: overwritten by an upstream update, so the symlink is gone
+and our version is no longer live. The distinguishing feature is that `git
+status` stays clean — the repo file was never touched, it just stopped being
+what `$HOME` points at. What `rice heal` restores, keeping the upstream file as
+`.displaced.<epoch>`.
+_Avoid_: clobbered, overwritten, broken (none of them say that the repo is fine
+and only the link is wrong)
+
+**Manifest** vs **record**:
+The manifest (`packages/chosen.packages`) is a decision — packages deliberately
+added, hand-maintained. The record (`packages.txt`) is a fact — `pacman -Qqe`
+dumped, mostly base install and Omarchy dependencies. Installing from the record
+is never intended.
+_Avoid_: package list (ambiguous between the two, and the difference is the
+whole point)
+
+**Migration** (rice sense):
+A one-shot idempotent script for state that lives *outside* the repo, where
+stowing a file cannot reach — a stale symlink, a state file, something Omarchy
+wrote once. Named for the epoch second it was written, recorded in
+`~/.local/state/rice/applied` once it succeeds. Distinct from an **Omarchy
+migration**, which is upstream's and runs on `omarchy update`.
+_Avoid_: migration (unqualified), fix script, patch
 
 ## Appearance
 
