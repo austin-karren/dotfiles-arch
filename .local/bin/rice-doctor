@@ -88,14 +88,19 @@ if [[ -d $OMARCHY_ROOT/.git ]]; then
       "the bridge's CachyOS patches are fine; these are not — they vanish on update"
   fi
 
-  # Three sentinels for the CachyOS adaptation, one per failure mode it prevents.
+  # Sentinels for the CachyOS adaptations that are still load-bearing.
+  #
+  # Deliberately NOT checked: the bridge also seds bin/omarchy-update-restart to
+  # swap `pacman -Q linux` for linux-cachyos. Upstream has since rewritten that
+  # script to compare /usr/lib/modules/*/vmlinuz against `uname -r`, which is
+  # distro-agnostic and already correct here — the patch is obsolete, and
+  # asserting it would fail forever on a machine that is fine. Re-add a check
+  # only if kernel-restart prompts actually misbehave.
   reverted=()
   grep -qx 'tldr' "$OMARCHY_ROOT/install/omarchy-base.packages" 2>/dev/null &&
     reverted+=("tldr back in omarchy-base.packages — conflicts with tealdeer")
   grep -q 'preflight/pacman\.sh' "$OMARCHY_ROOT/install/preflight/all.sh" 2>/dev/null &&
     reverted+=("preflight/pacman.sh restored — conflicts with CachyOS packages")
-  grep -q 'linux-cachyos' "$OMARCHY_ROOT/bin/omarchy-update-restart" 2>/dev/null ||
-    reverted+=("omarchy-update-restart no longer CachyOS-aware — kernel restart prompts break")
 
   if ((${#reverted[@]})); then
     bad "cachyos patch" "${#reverted[@]} bridge adaptation(s) reverted" "${reverted[@]}" \

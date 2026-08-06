@@ -28,7 +28,9 @@
 --
 Name = "palette"
 NamePretty = "System"
-Icon = "applications-system"
+-- No Icon: the label already carries a Nerd Font glyph, and setting a provider icon makes
+-- every entry render an application-style image beside it, which reads as a broken app
+-- entry rather than a command. Omarchy's own menus set no icon for the same reason.
 HideFromProviderlist = true
 FixedOrder = true
 Description = "System commands and toggles"

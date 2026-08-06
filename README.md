@@ -91,7 +91,9 @@ it can also override anything the tracked `.bashrc` set.
 | `.config/omarchy/extensions/menu.sh` | Omarchy menu overrides — the sanctioned extension point, not a patched Omarchy file |
 | `.config/starship.toml`, `.config/tmux/` | Prompt and multiplexer |
 | `.bashrc` | Thin — sources Omarchy's `default/bash/rc` |
-| `.local/bin/` | Scripts a keybinding or bar module depends on: `close-surface`, `window-resize`, `float-snap`, `ratio-toggle`. The rest of `~/.local/bin` is untracked — see the to-do |
+| `.local/bin/` | The `rice` CLI, plus every script a keybinding or bar module depends on. The npx shims (`codex`, `gemini`, …) stay untracked — they are generated, not config |
+| `.config/omarchy/hooks/post-update.d/` | Runs `rice heal` after each `omarchy update` — the sanctioned hook directory, not a patched Omarchy file |
+| `packages/`, `migrations/` | Repo-only: the package manifest, and one-shot fixes for state that lives outside the repo |
 
 ### Deliberately not tracked
 
@@ -99,33 +101,63 @@ it can also override anything the tracked `.bashrc` set.
 - **`~/.XCompose`** — contains a literal email expansion; kept out of a public repo.
 - **`*.bak.<timestamp>`** — Omarchy migration artifacts, not config.
 
-## Packages
+## The `rice` command
 
-`packages.txt` is the raw output of `pacman -Qqe` — every explicitly-installed
-package on the machine.
-
-**It is a record, not an install list.** Most of those 300 entries are the
-CachyOS base install and Omarchy's own dependencies, not deliberate choices of
-mine. Feeding the whole file to `pacman -S` on a fresh machine is not the
-intended use.
-
-Packages I actually added on top of the CachyOS + Omarchy baseline:
+Stow installs the symlinks once. It has no opinion about what happens to them
+afterwards — and on this machine CachyOS and Omarchy both update underneath the
+rice, with Omarchy's migrations rewriting files in `~/.config` that are our
+symlinks. `rice` is the part that notices.
 
 ```bash
-sudo pacman -S --needed \
-  bat eza tldr \        # Omarchy's bash config expects these three
-  git-delta git-lfs \   # git pager + LFS
-  stow \                # this repo
-  figlet lolcat \       # shell banner
-  zed                   # editor
+rice              # list commands
+rice doctor       # check all three layers for drift — read-only, no sudo
+rice heal         # re-assert the rice on top, apply pending migrations
+rice packages     # diff the manifest against what is installed
+```
+
+`rice heal` runs automatically after every `omarchy update`, via
+`.config/omarchy/hooks/post-update.d/10-rice-heal`. Files that displaced one of
+our symlinks are kept as `.displaced.<epoch>` rather than deleted — that is
+upstream's new default, usually worth reading first.
+
+Commands are discovered at run time from `rice-*` on PATH, so a new script in
+`.local/bin` shows up in the help as soon as it carries a `# rice:summary=` line.
+
+See [ADR-0028](./docs/adr/0028-the-rice-re-asserts-itself-after-upstream-updates.md)
+for why this exists and why migrations are worth having on a single machine.
+
+## Packages
+
+Two files, doing different jobs:
+
+- **`packages/chosen.packages`** is the manifest — packages deliberately added on
+  top of the CachyOS + Omarchy baseline. Hand-maintained, in Omarchy's own
+  `install/*.packages` format. `rice packages` diffs it against what is
+  installed.
+- **`packages.txt`** is the record — the raw output of `pacman -Qqe`, every
+  explicitly-installed package on the machine.
+
+The record is **not an install list**. Most of its ~300 entries are the CachyOS
+base install and Omarchy's own dependencies, not deliberate choices of mine.
+Feeding the whole file to `pacman -S` on a fresh machine is not the intended use.
+That is what the manifest is for:
+
+```bash
+sudo pacman -S --needed $(sed -e 's/#.*//' -e '/^\s*$/d' packages/chosen.packages)
+```
+
+Regenerate the record after installing or removing anything:
+
+```bash
+pacman -Qqe > packages.txt
 ```
 
 `bat` in particular is not optional on an Omarchy box: `default/bash/envs`
 exports `MANPAGER="sh -c 'col -bx | bat -l man -p'"` unconditionally, so without
 it `man` pipes into a missing binary in any interactive terminal.
 
-Language runtimes are handled by [mise](https://mise.jdx.dev), not pacman —
-`~/.config/mise/config.toml` pins those per-project.
+Language runtimes stay out of both files — [mise](https://mise.jdx.dev) owns
+those, pinned per-project in `~/.config/mise/config.toml`.
 
 ## Why things are the way they are
 
@@ -167,14 +199,15 @@ are the to-do list.
 | [0025](./docs/adr/0025-resize-windows-by-dragging-borders.md) | Resize windows by dragging their borders | accepted |
 | [0026](./docs/adr/0026-zen-ratio-instead-of-a-square.md) | Single-window **zen** aspect ratio, 6:5 not square | accepted |
 | [0027](./docs/adr/0027-one-list-for-apps-and-commands.md) | One list for applications and system commands | accepted |
+| [0028](./docs/adr/0028-the-rice-re-asserts-itself-after-upstream-updates.md) | The rice re-asserts itself after upstream updates | accepted |
 
 ## To do
 
-- Prune `packages.txt` down to a real, declarative package manifest
 - Work through the proposed ADRs above
-- Track the rest of `~/.local/bin` — `quick-menu`, `waybar-watchdog`, `pin-wallpaper`,
-  `calendar-toggle`, `window-toggle`, `menu-toggle`, `toggle-appearance`,
-  `aether-theme`. Only `close-surface`, `window-resize`, `float-snap` and `ratio-toggle` are in the repo, so ADRs
-  0005, 0007 and 0012 currently document behaviour that a rebuild would not reproduce
+- Teach `rice doctor` to check the things it currently cannot: that Waybar's
+  watchdog is actually running, and that the pinned wallpaper survived the last
+  theme change. Both are ADR'd behaviours with no assertion behind them
+- Decide whether `rice heal` should ever act on `.displaced.*` files, or only
+  ever leave them for a human to read
 - Settle wrap versus clamp for the Size ladder (ADR-0022) after using both, and put
   the switch in the Toggle Menu instead of `window-resize --toggle-mode`
