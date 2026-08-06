@@ -75,6 +75,20 @@ Behaviour after: `theme`, `zen`, `lock` reach the commands, `chrom` gives Chromi
 `term` returns nothing — which is what the application provider does alone, since
 `desktopapplications` matches on application *name* only and never matched "term" either.
 
+## Changes need both services restarted
+
+Neither Walker nor elephant re-reads provider configuration while running, and Walker's
+`--gapplication-service` is long-lived — it had been up 31 hours when this landed, so the
+new provider was invisible even though the config, the Lua file and `elephant
+listproviders` were all correct. The symptom is simply the old list, with no error.
+
+    omarchy-restart-walker      # restarts elephant.service and app-walker@autostart
+
+Use that rather than starting elephant by hand. `omarchy-launch-walker` will `setsid` its
+own elephant if none is running, which is fine on a cold start but produces a second
+instance alongside `elephant.service` if one is already up — and then a restart of the
+service does not replace the instance actually answering queries.
+
 ## Still open
 
 - **Favourites.** Walker already ships pinning for applications (`state: unpinned`, a

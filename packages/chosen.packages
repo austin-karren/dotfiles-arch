@@ -1,0 +1,43 @@
+# Packages chosen deliberately, on top of the CachyOS + Omarchy baseline.
+#
+# This is the manifest: a decision, hand-maintained. packages.txt is the record:
+# the raw `pacman -Qqe` dump, regenerated, ~300 entries, mostly not choices.
+# `rice packages` diffs this file against what is installed.
+#
+# Format matches Omarchy's install/*.packages — one name per line, # comments.
+
+# Omarchy's own bash config expects these three.
+# bat is not optional on an Omarchy box: default/bash/envs exports
+# MANPAGER="sh -c 'col -bx | bat -l man -p'" unconditionally, so without it
+# `man` pipes into a missing binary in any interactive terminal.
+bat
+eza
+tldr
+
+# git: pager and large files
+git-delta
+git-lfs
+
+# this repo
+stow
+
+# shell banner
+figlet
+lolcat
+
+# editor
+zed
+
+# JS runtimes and package managers not handled by mise
+bun
+pnpm
+
+# cloud and infra
+aws-cli-v2
+terraform
+
+# per-directory environment loading, hooked in .bashrc
+direnv
+
+# Language runtimes are deliberately absent: mise owns those, pinned per-project
+# in ~/.config/mise/config.toml, not pacman.

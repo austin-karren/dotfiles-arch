@@ -1,0 +1,128 @@
+#!/bin/bash
+
+# rice:summary=Re-assert the rice on top of whatever the base layers did
+# rice:args=[--dry-run]
+
+# The reconciliation half of `rice doctor`. Runs after an Omarchy or CachyOS
+# update — automatically via ~/.config/omarchy/hooks/post-update.d — to put the
+# rice back on top of a base that moved underneath it.
+#
+# The failure it exists for: Omarchy's migrations rewrite files in ~/.config. On
+# a stowed machine the thing being rewritten is one of our symlinks, so Omarchy
+# replaces the link with a fresh default and our config silently stops being
+# live. The `.bak.<epoch>` files it leaves behind are the fingerprint.
+#
+# Nothing here is destructive. A file that displaced one of our symlinks is moved
+# aside as .displaced.<epoch>, never deleted — it is the new upstream default and
+# usually worth reading before discarding.
+
+set -uo pipefail
+
+RICE_ROOT="${RICE_ROOT:-$HOME/dotfiles}"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/rice"
+APPLIED="$STATE_DIR/applied"
+dry_run=false
+[[ ${1:-} == --dry-run ]] && dry_run=true
+
+stamp=$(date +%s)
+changed=0
+
+say() { printf '  %s\n' "$1"; }
+act() {
+  changed=$((changed + 1))
+  printf '  \033[32m→\033[0m %s\n' "$1"
+}
+
+mkdir -p "$STATE_DIR"
+
+printf '\033[1mHealing %s\033[0m%s\n' "$RICE_ROOT" "$($dry_run && echo ' (dry run)')"
+
+# ---------------------------------------------------------
+# 1. Restore symlinks the base layers displaced
+# ---------------------------------------------------------
+
+while IFS= read -r f; do
+  target="$HOME/$f"
+  # A real file where a symlink belongs means something overwrote us.
+  if [[ -e $target && ! -L $target ]]; then
+    if $dry_run; then
+      act "would restore $f (displacing the real file)"
+      continue
+    fi
+    mv "$target" "$target.displaced.$stamp"
+    mkdir -p "$(dirname "$target")"
+    ln -s "$(realpath --relative-to="$(dirname "$target")" "$RICE_ROOT/$f")" "$target"
+    act "restored $f — upstream's version kept as $(basename "$target").displaced.$stamp"
+  fi
+  # Same exclusions as rice-doctor: repo-only paths and Stow metadata never
+  # belong in $HOME, so a real file at those paths is not a displaced symlink.
+done < <(git -C "$RICE_ROOT" ls-files |
+  grep -vE '^(docs/|packages/|migrations/|README|CONTEXT|packages\.txt|\.gitignore|\.stow-local-ignore)')
+
+# ---------------------------------------------------------
+# 2. Stow anything not yet installed
+# ---------------------------------------------------------
+
+if command -v stow &>/dev/null; then
+  # --no-folding keeps directories real, so Omarchy dropping a new file into
+  # ~/.config/hypr does not land inside the repo by way of a folded directory.
+  if $dry_run; then
+    stow_out=$(cd "$RICE_ROOT" && stow --simulate --no-folding . 2>&1)
+  else
+    stow_out=$(cd "$RICE_ROOT" && stow --no-folding . 2>&1)
+  fi
+  if [[ -n $stow_out ]]; then
+    act "stow:"
+    printf '    %s\n' "$stow_out"
+  else
+    say "stow: nothing to do"
+  fi
+else
+  say "stow: not installed — skipped"
+fi
+
+# ---------------------------------------------------------
+# 3. Apply pending migrations
+# ---------------------------------------------------------
+
+# Migrations exist because this machine cannot be rebuilt to get a fix — it is
+# the machine. Each is a one-shot, idempotent script named for the epoch second
+# it was written, applied once and recorded in the ledger.
+touch "$APPLIED"
+pending=()
+if [[ -d $RICE_ROOT/migrations ]]; then
+  for m in "$RICE_ROOT"/migrations/*.sh; do
+    [[ -e $m ]] || continue
+    grep -qxF "$(basename "$m")" "$APPLIED" || pending+=("$m")
+  done
+fi
+
+if ((${#pending[@]} == 0)); then
+  say "migrations: none pending"
+else
+  for m in "${pending[@]}"; do
+    name=$(basename "$m")
+    if $dry_run; then
+      act "would apply $name"
+      continue
+    fi
+    if bash "$m"; then
+      echo "$name" >>"$APPLIED"
+      act "applied $name"
+    else
+      printf '  \033[31m✗\033[0m migration %s failed — not recorded, will retry\n' "$name"
+      exit 1
+    fi
+  done
+fi
+
+# ---------------------------------------------------------
+
+$dry_run || touch "$STATE_DIR/last-heal"
+
+echo
+if ((changed)); then
+  printf '\033[32m%d change(s).\033[0m Run \033[1mrice doctor\033[0m to confirm.\n' "$changed"
+else
+  printf 'Nothing to heal.\n'
+fi
