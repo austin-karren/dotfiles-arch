@@ -22,7 +22,7 @@ quiet=false
 [[ ${1:-} == --quiet ]] && quiet=true
 
 if [[ ! -f $MANIFEST ]]; then
-  $quiet || echo "rice: no manifest at $MANIFEST" >&2
+  $quiet || echo "loaf: no manifest at $MANIFEST" >&2
   exit 1
 fi
 

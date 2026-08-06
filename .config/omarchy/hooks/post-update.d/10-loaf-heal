@@ -3,7 +3,7 @@
 # Runs after every `omarchy update`, via Omarchy's sanctioned hook directory.
 #
 # This is the join between the layers: Omarchy has just moved the base and may
-# have rewritten files in ~/.config that were our symlinks. `rice heal` puts the
+# have rewritten files in ~/.config that were our symlinks. `loaf heal` puts the
 # rice back on top and applies any pending migrations.
 #
 # Never fails the update. An update that succeeded should not be reported as
@@ -14,6 +14,6 @@ command -v loaf-heal &>/dev/null || exit 0
 
 echo
 echo "Re-asserting the rice on top of the update..."
-loaf-heal || echo "rice heal reported problems — run 'rice doctor' for detail"
+loaf-heal || echo "loaf heal reported problems — run 'loaf doctor' for detail"
 
 exit 0
