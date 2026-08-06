@@ -8,18 +8,24 @@
 --
 -- TWO NON-OBVIOUS MECHANISMS
 --
--- 1. THE LEADING SPACE IN EVERY `Text` IS LOAD-BEARING. With an empty query Walker merges
---    every provider into one list sorted by text, so without it these entries would be
---    scattered alphabetically among the applications - "Theme" would sit between "Steam"
---    and "Typora". A leading space sorts below nothing else, so the palette clusters above
---    "Aether" and the apps follow in their own alphabetical run.
---    Measured: with the space, position 0; without it, position 49 of 65.
+-- 1. `FixedOrder = true` IS WHAT PUTS THESE ENTRIES FIRST. With an empty query Walker
+--    merges every provider into one list sorted by text, and provider order in the query
+--    has no effect. FixedOrder overrides that for this provider: the entries stay
+--    contiguous, in the order defined below, ahead of the applications. Measured at
+--    positions 0-22 of 86, with the first application at 23.
 --
--- 2. `FixedOrder = true` SURVIVES THAT MERGE. Without it these entries would be sorted
---    alphabetically among themselves, losing Omarchy's Toggle Menu order. Verified by
---    feeding in Zebra/Apple/Mango and getting them back in that order at the top.
+--    An earlier revision added a leading space to every `Text` believing THAT was what
+--    sorted them first. It was not - it only broke the row alignment. Do not add it back.
 --
--- Neither is documented; both were established by querying elephant directly.
+-- 2. THE GLYPH GOES IN `Icon`, NOT IN `Text`. item.xml ships an ItemImageFont label
+--    (width-chars 2) in the same column as the image widget, for exactly this. Putting
+--    the glyph in the label instead indents each row by its own glyph's advance width,
+--    so rows do not line up with the applications - or with each other.
+--    The matching `.item-image-text` rule in the walker theme gives that slot the same
+--    box as an application icon, so both row types put their label at the same x.
+--
+-- Neither is documented; both were established by querying elephant and measuring
+-- screenshots of the rendered list.
 --
 -- ORDER AND NAMING: Omarchy's Toggle Menu entries come first, in Omarchy's order and under
 -- Omarchy's names, because those are canonical. This rice's own commands follow. Where
@@ -62,57 +68,68 @@ function GetEntries()
 
   -- Omarchy Toggle Menu, in Omarchy's order and under Omarchy's names.
   add({
-    Text = " 󱄄  Screensaver",
+    Text = "Screensaver",
+    Icon = "󱄄",
     Keywords = {"screensaver", "idle"},
     Actions = { activate = "omarchy-toggle-screensaver" },
   })
   add({
-    Text = " 󰔎  Nightlight",
+    Text = "Nightlight",
+    Icon = "󰔎",
     Keywords = {"night", "blue light", "warm"},
     Actions = { activate = "omarchy-toggle-nightlight" },
   })
   add({
-    Text = " 󱫖  Idle Lock",
+    Text = "Idle Lock",
+    Icon = "󱫖",
     Keywords = {"idle", "lock", "sleep"},
     Actions = { activate = "omarchy-toggle-idle" },
   })
   add({
-    Text = " 󰂛  Notifications",
+    Text = "Notifications",
+    Icon = "󰂛",
     Keywords = {"dnd", "do not disturb", "silence"},
     Actions = { activate = "omarchy-toggle-notification-silencing" },
   })
   add({
-    Text = " 󰍜  Top Bar",
+    Text = "Top Bar",
+    Icon = "󰍜",
     Keywords = {"waybar", "bar", "panel"},
     Actions = { activate = "omarchy-toggle-waybar" },
   })
   add({
-    Text = " 󱂬  Workspace Layout",
+    Text = "Workspace Layout",
+    Icon = "󱂬",
     Keywords = {"tiling", "dwindle", "master"},
     Actions = { activate = "omarchy-hyprland-workspace-layout-toggle" },
   })
   add({
-    Text = "   Window Gaps",
+    Text = "Window Gaps",
+    Icon = "",
     Keywords = {"gaps", "spacing"},
     Actions = { activate = "omarchy-hyprland-window-gaps-toggle" },
   })
   add({
-    Text = "   1-Window Zen Ratio",
+    Text = "1-Window Zen Ratio",
+    Icon = "",
     Keywords = {"zen", "aspect", "ratio", "single window"},
     Actions = { activate = "ratio-toggle" },
   })
   add({
-    Text = " 󰍹  Monitor Scaling",
+    Text = "Monitor Scaling",
+    Icon = "󰍹",
     Keywords = {"scale", "hidpi", "resolution"},
     Actions = { activate = "omarchy-hyprland-monitor-scaling-cycle" },
   })
   add({
-    Text = "   Direct Boot",
+    Text = "Direct Boot",
+    Icon = "",
     Keywords = {"boot", "grub"},
     Actions = { activate = "omarchy-launch-floating-terminal-with-presentation omarchy-config-direct-boot" },
   })
   add({
-    Text = " 󰟵  Passwordless Sudo",
+    Text = "Passwordless Sudo",
+    Icon = "󰟵",
     Keywords = {"sudo", "password"},
     Actions = { activate = "omarchy-launch-floating-terminal-with-presentation omarchy-sudo-passwordless" },
   })
@@ -120,74 +137,87 @@ function GetEntries()
   -- Appearance is dynamic: label it with where it will take you, not where you are.
   if file_exists(os.getenv("HOME") .. "/.config/omarchy/current/theme/light.mode") then
     add({
-      Text = " 󰖔  Switch to Dark",
+      Text = "Switch to Dark",
+    Icon = "󰖔",
       Keywords = {"dark", "appearance", "mode"},
       Actions = { activate = "toggle-appearance" },
     })
   else
     add({
-      Text = " 󰖨  Switch to Light",
+      Text = "Switch to Light",
+    Icon = "󰖨",
       Keywords = {"light", "appearance", "mode"},
       Actions = { activate = "toggle-appearance" },
     })
   end
 
   add({
-    Text = " 󰇲  Emoji & Symbols",
+    Text = "Emoji & Symbols",
+    Icon = "󰇲",
     Keywords = {"emoji", "symbol", "unicode"},
     Actions = { activate = "omarchy-launch-walker -m symbols" },
   })
   add({
-    Text = " 󰅍  Clipboard History",
+    Text = "Clipboard History",
+    Icon = "󰅍",
     Keywords = {"clipboard", "paste", "history"},
     Actions = { activate = "omarchy-launch-walker -m clipboard" },
   })
   add({
-    Text = " 󰸉  Wallpaper",
+    Text = "Wallpaper",
+    Icon = "󰸉",
     Keywords = {"background", "wallpaper"},
     Actions = { activate = "omarchy-menu background" },
   })
   add({
-    Text = " 󰏘  Theme",
+    Text = "Theme",
+    Icon = "󰏘",
     Keywords = {"theme", "colours", "appearance"},
     Actions = { activate = "omarchy-menu theme" },
   })
   add({
-    Text = " 󱄄  Start Screensaver",
+    Text = "Start Screensaver",
+    Icon = "󱄄",
     Keywords = {"screensaver", "blank"},
     Actions = { activate = "omarchy-launch-screensaver force" },
   })
   add({
-    Text = " 󰌾  Lock",
+    Text = "Lock",
+    Icon = "󰌾",
     Keywords = {"lock", "secure"},
     Actions = { activate = "omarchy-system-lock" },
   })
   if not toggle_enabled("suspend-off") then
     add({
-      Text = " 󰒲  Sleep",
+      Text = "Sleep",
+    Icon = "󰒲",
       Keywords = {"suspend", "sleep"},
       Actions = { activate = "systemctl suspend" },
     })
   end
   if cmd_ok("omarchy-hibernation-available") then
     add({
-      Text = " 󰤁  Hibernate",
+      Text = "Hibernate",
+    Icon = "󰤁",
       Keywords = {"hibernate"},
       Actions = { activate = "systemctl hibernate" },
     })
   end
   add({
-    Text = " 󰍃  Log Out",
+    Text = "Log Out",
+    Icon = "󰍃",
     Keywords = {"logout", "sign out"},
     Actions = { activate = "omarchy-system-logout" },
   })
   add({
-    Text = " 󰜉  Restart",
+    Text = "Restart",
+    Icon = "󰜉",
     Keywords = {"reboot", "restart"},
     Actions = { activate = "omarchy-system-reboot" },
   })
   add({
-    Text = " 󰐥  Shut Down",
+    Text = "Shut Down",
+    Icon = "󰐥",
     Keywords = {"shutdown", "power off", "poweroff"},
     Actions = { activate = "omarchy-system-shutdown" },
   })
