@@ -34,7 +34,7 @@ now_ms() { echo $(( $(date +%s%N) / 1000000 )); }
 menu_pids() {
   local p
   for p in $(pgrep -f 'walker.*--dmenu' 2>/dev/null); do
-    [[ "$(cat /proc/$p/comm 2>/dev/null)" == walker ]] && echo "$p"
+    [[ "$(cat "/proc/$p/comm" 2>/dev/null)" == walker ]] && echo "$p"
   done
 }
 

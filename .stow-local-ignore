@@ -18,3 +18,4 @@
 ^/docs$
 ^/packages$
 ^/migrations$
+^/test$
