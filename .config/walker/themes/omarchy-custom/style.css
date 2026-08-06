@@ -24,7 +24,11 @@ scrollbar {
    item.xml asks for icon-size "large" for every list row, so this is what applications
    render at. Walker's default is 32px, which towers over a text glyph and makes the
    commands look like second-class rows in the same list. 18px matches their optical
-   height. .normal-icons (16px) is used elsewhere and is left alone. */
+   height. .normal-icons (16px) is used elsewhere and is left alone.
+
+   The 14px margin-right this rule used to carry is gone: see .item-image-text below.
+   Labels now measure 1494 / 1492 / 1492 physical px for a command, an application and a
+   web search -- a 1.2 logical px spread, which is the alignment residual, not a gap. */
 .large-icons {
   -gtk-icon-size: 18px;
 }
@@ -109,8 +113,26 @@ child:selected {
 }
 
 .item-image {
-  margin-right: 14px;
+  margin-right: 0;
   -gtk-icon-transform: scale(0.9);
+}
+
+/* Text-icon slot, used by rows whose icon is a font glyph rather than an image -- the
+   system palette's entries.
+
+   NO margin here, and none on .item-image above, deliberately: the gap between an icon
+   and its label is then the row box's own 10px spacing and nothing else, which is the
+   tighter look the glyph rows had before the two were reconciled. Both rules must stay
+   at 0 together -- a margin on one and not the other is what made the columns disagree
+   in the first place.
+
+   min-width is INERT at the current font size and kept only as a floor. item.xml sets
+   width-chars=2 on this label, which yields ~18.6px, so an 18px minimum never binds --
+   measured identical label positions at min-width 0 and 18px, and a 34px shift at 40px.
+   It matters only if the theme font shrinks enough that two characters are narrower
+   than an icon; then it holds the column instead of letting rows drift. */
+.item-image-text {
+  min-width: 18px;
 }
 
 .current {
