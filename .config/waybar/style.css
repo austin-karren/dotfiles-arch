@@ -43,69 +43,129 @@
   margin: 0 7.5px;
 }
 
-/* Right-hand icon cluster: uniform PITCH, not uniform ink gaps.
+/* Right-hand icon cluster: each box is sized to its GLYPH, per state.
    ---------------------------------------------------------------------------
-   These icons change with status, and the replacement glyphs are not the same
-   width. Measured ink widths at the real render size (24 physical px):
+   The previous design gave every module one 18px box and centred the glyph in it,
+   on the theory that uniform PITCH was the best available compromise because glyph
+   ink changes between states. Uniform pitch it delivered -- painting each module a
+   flat colour and measuring the painted spans showed boxes of exactly 29 physical
+   px, pitch exactly 50.0, inter-box gaps exactly 21. But pitch is not what the eye
+   reads: it reads the gap between INK. The bluetooth rune is 10.6 physical px wide
+   where its neighbours are 16..19, so it floated in ~9px of air per side against
+   their ~5, and the surplus pooled beside the network globe.
 
-     pulseaudio  15..28   (muted / volume levels / headphone / headset)
-     network     20..24   (5 wifi strengths, ethernet, disconnected)
-     bluetooth   12..18   (on / off / connected)
-     apexshot    23       expand-icon 12
+   Two facts make per-glyph sizing possible, and both had to be measured:
 
-   So tuning margins for equal gaps between the CURRENT icons is self-defeating:
-   swap the sun for a moon (+6px) or the speaker for headphones (+13px) and every
-   neighbouring gap shifts. There is no static margin set that equalises ink gaps
-   across all combinations.
+   1. These Nerd Font icons do NOT advance like the text around them. Pango
+      allocates them about one monospace cell wide regardless of how wide the glyph
+      is actually drawn, so the ink overflows the box by a different amount for
+      every glyph. Letting boxes size to content therefore does NOT even out the
+      gaps -- tried it, gaps came out 30/23/24/30/28. Only an explicit width per
+      glyph works.
+   2. Waybar emits state classes we can hang those widths on. Verified live by
+      painting `#network.ethernet` and `#bluetooth.on` and watching the box change;
+      `#bluetooth.off` correctly did not match while bluetooth was on.
 
-   Instead every module gets an identical box wider than the widest glyph it can
-   ever show (28 physical = 16.8 logical, so 18px), plus equal margins. The boxes
-   then form a fixed grid and each glyph is centred in its cell, so icon centres
-   stay evenly spaced no matter which state each module is in. Pitch is
-   18 + 2*5.7 = 29.4px, chosen to match the cluster's previous overall width.
+   So every min-width below is that state's measured ink width in logical px (its
+   physical ink at 1.67x, divided by 1.67), which makes the box hug the glyph and
+   leaves the gap to the margins alone. Uniform margins then give uniform ink gaps
+   no matter which glyph each module is showing -- and because the box never
+   depends on a NEIGHBOUR's state, no module moves when another one changes.
 
-   Do not add per-module margins here -- that reintroduces state-dependent drift. */
+   Measured across every reachable state, physical px at 1.67x. Each state was
+   forced by patching the glyph AND the width its class would apply, then measured
+   from a screenshot -- not predicted from font metrics:
+
+     before, bt-on/ethernet/headphone   31, 32, 38, 33   spread 7
+     bt on / ethernet / headphone       31, 30, 30, 31   spread 1
+     bt connected                       31, 30, 31, 31   spread 1
+     bt off / disabled                  31, 30, 30, 31   spread 1
+     network wifi (all five bars)       31, 30, 32, 30   spread 2
+     network disconnected               31, 30, 32, 30   spread 2
+     pulseaudio vol-low                 31, 30, 30, 32   spread 2
+     pulseaudio vol-high                31, 30, 30, 31   spread 1
+     pulseaudio muted                   31, 30, 30, 31   spread 1
+
+   Rerunnable: scratchpad/sweep.py in the session that wrote this. If you change a
+   glyph, re-measure -- the widths below are ink measurements, not guesses, and a
+   new glyph invalidates its row.
+
+   Ink widths behind the numbers (physical px):
+     apexshot 18.5   ratio 18.5 (one glyph, both states -- it carries state by
+     opacity, not by a second glyph, so its footprint is fixed)
+     bluetooth  on 10.6   off/disabled 13.4   connected 15.1
+     network    wifi 19.4 (identical for all five bar levels)   ethernet 16.7
+                disconnected 19.4
+     pulseaudio vol 11.6 / 16.2 / 23.1   headphone+headset 18.5   muted 20.8
+
+   PULSEAUDIO IS THE ONE MODULE WITHOUT PER-STATE CONTROL. Waybar emits no class
+   for it that we could find -- eight candidate names probed (headphone, headphones,
+   headset, speaker, bluetooth, muted, hands-free, default), none matched -- and its
+   volume ramp is chosen by array index, which has no class at all. It is pinned to
+   the headphone width, the state this machine actually sits in. Measured cost of
+   that compromise: +2px on the gap to its left at low volume, and nothing at all
+   at high volume or muted -- better than the 3.5px the metrics predicted, because
+   the wider glyphs overflow the pinned box symmetrically instead of padding it.
+
+   Being the RIGHTMOST module is what makes it tolerable at all: modules-right is
+   packed to the right edge, so a width change there moves only its own left gap
+   rather than reflowing the cluster. Anything with an unclassable ramp belongs on
+   this end of the bar.
+
+   The bluetooth margins are deliberately asymmetric (9.6 left / 7.6 right against
+   the uniform 8.6). That corrects a ~1.5px subpixel rounding offset, NOT a
+   neighbour's state: custom/ratio has a single fixed glyph, so the offset it
+   contributes is constant and safe to cancel. Do not copy this trick onto a module
+   whose neighbour changes glyph.
+
+   The wider gap before the tray chevron is the drawer boundary, not this defect:
+   #custom-expand-icon lives inside group/tray-expander, whose layout governs it. */
 #custom-apexshot,
 #custom-ratio,
 #bluetooth,
 #network,
 #pulseaudio,
 #battery {
-  min-width: 18px;
-  margin: 0 5.7px;
+  margin: 0 8.6px;
   padding: 0;
 }
 
-/* Bluetooth is the one exception to the shared box above, and it is a glyph-shape
-   exception rather than a state-dependent one.
-   ---------------------------------------------------------------------------
-   The bluetooth rune is narrow: 11 physical px of ink at 1.67x, against 16..18 for
-   every neighbour, at the same 16px ink height. Centred in the shared 18px box it
-   therefore carries ~9px of air per side where its neighbours carry ~5, and the
-   surplus reads as a hole -- most visibly to the LEFT of the network globe, which
-   is the widest single gap in the cluster.
+#custom-apexshot,
+#custom-ratio {
+  min-width: 11.1px;
+}
 
-   Sizing the box to the glyph family it holds, not to a global constant, is what the
-   uniform-box rule was always doing; 18px simply assumed one family. All four
-   bluetooth states are the Material Design rune (U+F00AF on, U+F00B2 off/disabled,
-   U+F00B1 connected) and measure 11, 13 and 15 physical px, so a 15px box (25
-   physical) still exceeds the widest state and the module cannot clip or reflow as
-   devices connect. That is the property that mattered -- not the constant itself.
-
-   Measured ink gaps across the status run, physical px at 1.67x:
-     before  31, 32, 38, 33   (spread 7, the 38 sitting left of the globe)
-     after   31, 31, 35, 33   (spread 4)
-   The remaining 35 is ratio's own ink sitting ~2px right of its box centre, a
-   subpixel rounding artifact that moves when ratio toggles glyph -- so correcting
-   for it here would be tuning against a neighbour's state, exactly what the rule
-   above forbids. Left alone deliberately.
-
-   The wider gap before the tray chevron is not this defect and is not tuned out:
-   #custom-expand-icon sits inside group/tray-expander, whose own layout governs it
-   (verified -- min-width there changes nothing), and the gap reads as the boundary
-   between the drawer and the status run. */
 #bluetooth {
-  min-width: 15px;
+  min-width: 6.4px;
+  margin-left: 9.6px;
+  margin-right: 7.6px;
+}
+
+#bluetooth.off,
+#bluetooth.disabled {
+  min-width: 8px;
+}
+
+/* After .off/.disabled: if waybar ever sets both, the connected width must win.
+   Carries its own margin pair for the same subpixel reason as the base rule -- the
+   wider connected glyph rounds the other way, so the +1px nudge above becomes -0.5px
+   here. Measured: 31/31/28/31 with the base margins, 31/30/31/31 with these. */
+#bluetooth.connected {
+  min-width: 9px;
+  margin-left: 8.1px;
+  margin-right: 9.1px;
+}
+
+#network {
+  min-width: 11.6px;
+}
+
+#network.ethernet {
+  min-width: 10px;
+}
+
+#pulseaudio {
+  min-width: 11.1px;
 }
 
 #tray {
@@ -113,8 +173,8 @@
 }
 
 #custom-expand-icon {
-  margin: 0 5.7px;
-  min-width: 18px;
+  margin: 0 8.6px;
+  min-width: 5.4px;
 }
 
 tooltip {
