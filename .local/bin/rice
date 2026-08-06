@@ -9,7 +9,11 @@
 
 set -euo pipefail
 
-RICE_ROOT="${RICE_ROOT:-$HOME/dotfiles}"
+# $RICE_HOME is $HOME everywhere except the test suite, which points it at a
+# fixture tree. Every path below derives from it, so nothing reaches the real
+# home directory unless it was asked to.
+RICE_HOME="${RICE_HOME:-$HOME}"
+RICE_ROOT="${RICE_ROOT:-$RICE_HOME/dotfiles}"
 export RICE_ROOT
 
 summary_of() {

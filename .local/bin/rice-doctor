@@ -13,10 +13,14 @@
 
 set -uo pipefail
 
-RICE_ROOT="${RICE_ROOT:-$HOME/dotfiles}"
-BRIDGE_ROOT="${BRIDGE_ROOT:-$HOME/omarchy-on-cachyos}"
-OMARCHY_ROOT="${OMARCHY_PATH:-$HOME/.local/share/omarchy}"
-STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/rice"
+# $RICE_HOME is $HOME everywhere except the test suite, which points it at a
+# fixture tree. Every path below derives from it, so nothing reaches the real
+# home directory unless it was asked to.
+RICE_HOME="${RICE_HOME:-$HOME}"
+RICE_ROOT="${RICE_ROOT:-$RICE_HOME/dotfiles}"
+BRIDGE_ROOT="${BRIDGE_ROOT:-$RICE_HOME/omarchy-on-cachyos}"
+OMARCHY_ROOT="${OMARCHY_PATH:-$RICE_HOME/.local/share/omarchy}"
+STATE_DIR="${XDG_STATE_HOME:-$RICE_HOME/.local/state}/rice"
 
 problems=0
 current_layer=""
@@ -58,7 +62,7 @@ else
   warn "bridge" "$BRIDGE_ROOT missing — cannot re-run the Omarchy installer"
 fi
 
-if [[ -d $HOME/omarchy ]]; then
+if [[ -d $RICE_HOME/omarchy ]]; then
   bad "stale clone" "~/omarchy exists again" \
       "ADR-0001: this is the wrong-path clone, it should not come back"
 else
@@ -115,10 +119,10 @@ fi
 # Omarchy backs a file up as <name>.bak.<epoch> right before overwriting it. On a
 # stowed machine the thing it overwrote was one of our symlinks, so these are the
 # fingerprint of a config we may have silently lost.
-mapfile -t backups < <(find "$HOME/.config" -name '*.bak.*' -newer "$STATE_DIR/last-heal" 2>/dev/null)
+mapfile -t backups < <(find "$RICE_HOME/.config" -name '*.bak.*' -newer "$STATE_DIR/last-heal" 2>/dev/null)
 if ((${#backups[@]})); then
   warn "clobbers" "${#backups[@]} config backup(s) since last heal"
-  printf '    %s\n' "${backups[@]#$HOME/}"
+  printf '    %s\n' "${backups[@]#$RICE_HOME/}"
 fi
 
 # ---------------------------------------------------------
@@ -132,13 +136,13 @@ if [[ ! -d $RICE_ROOT/.git ]]; then
   exit 1
 fi
 
-# Every tracked config file should reach $HOME as a symlink pointing back here.
+# Every tracked config file should reach $RICE_HOME as a symlink pointing back here.
 # A real file means something overwrote the link and our version is not live.
 linked=0
 clobbered=()
 missing=()
 while IFS= read -r f; do
-  target="$HOME/$f"
+  target="$RICE_HOME/$f"
   if [[ -L $target ]]; then
     linked=$((linked + 1))
   elif [[ -e $target ]]; then
@@ -147,7 +151,7 @@ while IFS= read -r f; do
     missing+=("$f")
   fi
   # Excludes repo-only paths (never stowed) and Stow's own metadata, which
-  # .stow-local-ignore deliberately keeps out of $HOME.
+  # .stow-local-ignore deliberately keeps out of $RICE_HOME.
 done < <(git -C "$RICE_ROOT" ls-files |
   grep -vE '^(docs/|packages/|migrations/|README|CONTEXT|packages\.txt|\.gitignore|\.stow-local-ignore)')
 
@@ -155,17 +159,17 @@ done < <(git -C "$RICE_ROOT" ls-files |
 ((${#clobbered[@]})) && bad "symlinks" "${#clobbered[@]} replaced by real files" "${clobbered[@]}"
 ((${#missing[@]})) && bad "symlinks" "${#missing[@]} not installed" "${missing[@]}"
 
-# Repo-only files must not be stowed into $HOME. Anything matched here escaped
+# Repo-only files must not be stowed into $RICE_HOME. Anything matched here escaped
 # .stow-local-ignore.
 leaks=()
 for f in CONTEXT.md README.md packages.txt docs packages migrations; do
-  [[ -e $HOME/$f ]] && leaks+=("~/$f")
+  [[ -e $RICE_HOME/$f ]] && leaks+=("~/$f")
 done
 if ((${#leaks[@]})); then
-  bad "leaks" "${#leaks[@]} repo-only path(s) in \$HOME" "${leaks[@]}" \
+  bad "leaks" "${#leaks[@]} repo-only path(s) in \$RICE_HOME" "${leaks[@]}" \
     "add them to .stow-local-ignore, then remove the links"
 else
-  ok "leaks" "no repo-only paths in \$HOME"
+  ok "leaks" "no repo-only paths in \$RICE_HOME"
 fi
 
 if [[ -n $(git -C "$RICE_ROOT" status --porcelain) ]]; then
