@@ -11,13 +11,6 @@ source ~/.local/share/omarchy/default/bash/rc
 # alias p='python'
 
 # ---------------------------------------------------------
-# ☁️  AWS
-# ---------------------------------------------------------
-
-export AWS_PROFILE=shiptrac-austin
-export AWS_SDK_LOAD_CONFIG=1
-
-# ---------------------------------------------------------
 # 🔧  direnv
 # ---------------------------------------------------------
 
@@ -48,9 +41,17 @@ secret() {
 }
 
 # pnpm
-export PNPM_HOME="/home/austinkarren/.local/share/pnpm"
+export PNPM_HOME="$HOME/.local/share/pnpm"
 case ":$PATH:" in
   *":$PNPM_HOME/bin:"*) ;;
   *) export PATH="$PNPM_HOME/bin:$PATH" ;;
 esac
 # pnpm end
+
+# ---------------------------------------------------------
+# 🔒  Machine-side identity
+# ---------------------------------------------------------
+
+# Anything carrying a name, email, account or secret lives here, untracked.
+# Sourced last so it can override anything above. Missing file is fine.
+[[ -f ~/.bashrc.local ]] && source ~/.bashrc.local

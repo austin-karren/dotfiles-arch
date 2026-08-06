@@ -15,7 +15,13 @@ symbols = 1 # providers to be queried by default
 
 [providers]
 max_results = 256 # 256 should be enough for everyone
+# menus:palette is this rice's system palette (see .config/elephant/menus/palette.lua).
+# Listing it here is what merges commands and applications into ONE list, replacing the
+# old split between the launcher and a separate quick menu. Order in this list does NOT
+# affect display order - Walker sorts an empty query alphabetically across all providers -
+# so the palette relies on a leading space in each entry to sort above the apps.
 default = [
+  "menus:palette",
   "desktopapplications",
   "websearch",
 ]

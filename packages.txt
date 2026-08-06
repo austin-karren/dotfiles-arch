@@ -8,9 +8,11 @@ amd-ucode
 apexshot
 asdcontrol
 awesome-terminal-fonts
+aws-cli-v2
 base
 base-devel
 bash-completion
+bat
 bind
 blender
 bluetui
@@ -25,7 +27,7 @@ brightnessctl
 btop
 btrfs-assistant
 btrfs-progs
-cachyos-hello
+bun
 cachyos-hooks
 cachyos-kernel-manager
 cachyos-keyring
@@ -54,6 +56,7 @@ cups-filters
 cups-pdf
 device-mapper
 diffutils
+direnv
 dmidecode
 dmraid
 dnsmasq
@@ -71,12 +74,14 @@ ethtool
 evince
 evtest
 exfatprogs
+eza
 f2fs-tools
 fastfetch
 fcitx5
 fcitx5-gtk
 fcitx5-qt
 ffmpegthumbnailer
+figlet
 flatpak
 foomatic-db
 foomatic-db-engine
@@ -92,6 +97,8 @@ fwupd
 ghostscript
 ghostty
 git
+git-delta
+git-lfs
 github-cli
 glances
 gnome-calculator
@@ -156,6 +163,7 @@ linux-cachyos-lts-headers
 linux-firmware
 localsend
 logrotate
+lolcat
 lsb-release
 lsscsi
 luarocks
@@ -206,6 +214,7 @@ pkgfile
 playerctl
 plocate
 plymouth
+pnpm
 polkit-gnome
 poppler-glib
 postgresql-libs
@@ -241,15 +250,18 @@ sof-firmware
 spotify
 starship
 steam
+stow
 sudo
 sushi
 swaybg
 swayosd
 sysfsutils
 system-config-printer
+terraform
 tesseract
 tesseract-data-eng
 texinfo
+tldr
 tmux
 tobi-try
 tree-sitter-cli
@@ -294,7 +306,7 @@ xf86-video-amdgpu
 xfsprogs
 xl2tpd
 xmlstarlet
-xournalpp
 yaru-icon-theme
 yay
+zed
 zoxide
