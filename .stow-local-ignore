@@ -10,5 +10,11 @@
 .+~
 \#.*\#
 
-# Repo-only files — records and docs, not config to install
+# Repo-only files — records, docs and manifests, not config to install.
+# Anything listed here would otherwise be symlinked into $HOME as if it were
+# config. `rice doctor` checks for exactly that leak.
 ^/packages\.txt$
+^/CONTEXT\.md$
+^/docs$
+^/packages$
+^/migrations$

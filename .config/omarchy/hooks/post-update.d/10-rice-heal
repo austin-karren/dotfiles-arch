@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Runs after every `omarchy update`, via Omarchy's sanctioned hook directory.
+#
+# This is the join between the layers: Omarchy has just moved the base and may
+# have rewritten files in ~/.config that were our symlinks. `rice heal` puts the
+# rice back on top and applies any pending migrations.
+#
+# Never fails the update. An update that succeeded should not be reported as
+# broken because the rice needs attention — heal says what it did, doctor is
+# there to be run deliberately.
+
+command -v rice-heal &>/dev/null || exit 0
+
+echo
+echo "Re-asserting the rice on top of the update..."
+rice-heal || echo "rice heal reported problems — run 'rice doctor' for detail"
+
+exit 0

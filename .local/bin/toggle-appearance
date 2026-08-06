@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# Toggle system appearance between light and dark, macOS style.
+#
+# In Omarchy "appearance" is a property of the active theme: themes that ship a
+# light.mode marker file are light, and omarchy-theme-set-gnome reads that marker
+# to set the GTK color-scheme and icon theme. So toggling appearance means
+# switching to a theme of the opposite mode.
+#
+# The last-used theme of each mode is remembered, so if you pick a different dark
+# theme by hand the toggle follows you instead of snapping back to a default.
+
+set -e
+
+CURRENT_THEME_DIR="$HOME/.config/omarchy/current/theme"
+THEME_NAME_FILE="$HOME/.config/omarchy/current/theme.name"
+STATE_DIR="$HOME/.local/state/omarchy/appearance"
+
+DEFAULT_DARK="tokyo-night"
+DEFAULT_LIGHT="catppuccin-latte"
+
+mkdir -p "$STATE_DIR"
+
+current=$(<"$THEME_NAME_FILE")
+
+if [[ -f "$CURRENT_THEME_DIR/light.mode" ]]; then
+  # Currently light -> remember it, switch to dark.
+  echo "$current" >"$STATE_DIR/last-light"
+  target=$(cat "$STATE_DIR/last-dark" 2>/dev/null || echo "$DEFAULT_DARK")
+  mode="dark"
+else
+  echo "$current" >"$STATE_DIR/last-dark"
+  target=$(cat "$STATE_DIR/last-light" 2>/dev/null || echo "$DEFAULT_LIGHT")
+  mode="light"
+fi
+
+# Guard against a remembered theme that has since been removed.
+if [[ ! -d "$HOME/.local/share/omarchy/themes/$target" && ! -d "$HOME/.config/omarchy/themes/$target" ]]; then
+  [[ $mode == "light" ]] && target="$DEFAULT_LIGHT" || target="$DEFAULT_DARK"
+fi
+
+omarchy-theme-set "$target"
+
+notify-send -u low "Appearance: ${mode^}" "$target"

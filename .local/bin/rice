@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# rice:summary=Manage this machine's deviations from stock Omarchy
+
+# Dispatches `rice <command>` to a `rice-<command>` executable on PATH, the same
+# way the `omarchy` CLI dispatches to `omarchy-*`. Commands are discovered at run
+# time rather than listed here, so adding a script to ~/.local/bin is all it takes
+# for it to appear in the help below — it just needs a `# rice:summary=` line.
+
+set -euo pipefail
+
+RICE_ROOT="${RICE_ROOT:-$HOME/dotfiles}"
+export RICE_ROOT
+
+summary_of() {
+  # Read the summary without executing the script.
+  sed -n 's/^# rice:summary=//p' "$1" | head -1
+}
+
+list_commands() {
+  echo "Manage this machine's deviations from stock Omarchy."
+  echo
+  echo "Usage: rice <command> [args]"
+  echo
+
+  local seen=() name path
+  # Walk PATH rather than one fixed directory, so a command still resolves if it
+  # is installed somewhere other than ~/.local/bin.
+  while IFS= read -r path; do
+    name=${path##*/rice-}
+    [[ " ${seen[*]:-} " == *" $name "* ]] && continue
+    seen+=("$name")
+    printf '  %-10s %s\n' "$name" "$(summary_of "$path")"
+  done < <(compgen -c 'rice-' | sort -u | while read -r c; do command -v "$c"; done)
+
+  echo
+  echo "Repo: $RICE_ROOT"
+}
+
+case "${1:-}" in
+"" | -h | --help | help)
+  list_commands
+  exit 0
+  ;;
+esac
+
+command=$1
+shift
+
+if ! command -v "rice-$command" &>/dev/null; then
+  echo "rice: no such command '$command'" >&2
+  echo "Run 'rice' to list what exists." >&2
+  exit 1
+fi
+
+exec "rice-$command" "$@"

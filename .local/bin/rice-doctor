@@ -1,0 +1,208 @@
+#!/bin/bash
+
+# rice:summary=Check the three layers for drift, without changing anything
+
+# This machine is three layers deep: CachyOS is the base, Omarchy is the desktop
+# layered on with a third-party bridge repo (ADR-0001), and the rice sits on top
+# of both. Each layer updates on its own schedule and can quietly undo the one
+# above it, so this asserts what should be true and reports what is not.
+#
+# Read-only by construction: it never writes, never sudos, and never touches the
+# network. `rice heal` is the half that fixes things. Exits non-zero if anything
+# is wrong, so it can gate a hook.
+
+set -uo pipefail
+
+RICE_ROOT="${RICE_ROOT:-$HOME/dotfiles}"
+BRIDGE_ROOT="${BRIDGE_ROOT:-$HOME/omarchy-on-cachyos}"
+OMARCHY_ROOT="${OMARCHY_PATH:-$HOME/.local/share/omarchy}"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/rice"
+
+problems=0
+current_layer=""
+
+layer() {
+  current_layer=$1
+  printf '\n\033[1m%s\033[0m\n' "$1"
+}
+
+ok() { printf '  \033[32m✓\033[0m %-14s %s\n' "$1" "${2:-}"; }
+
+bad() {
+  problems=$((problems + 1))
+  printf '  \033[31m✗\033[0m %-14s %s\n' "$1" "$2"
+  local detail
+  for detail in "${@:3}"; do printf '    %s\n' "$detail"; done
+}
+
+warn() { printf '  \033[33m!\033[0m %-14s %s\n' "$1" "$2"; }
+
+# ---------------------------------------------------------
+# Base — CachyOS, and the bridge that put Omarchy on it
+# ---------------------------------------------------------
+
+layer "Base (CachyOS)"
+
+if [[ -d $BRIDGE_ROOT ]]; then
+  # ADR-0001: the installer shipped with two scripts disagreeing about where the
+  # Omarchy checkout goes. The fix is an uncommitted local edit, so a `git pull`
+  # in the bridge repo silently reverts it and the next install breaks again.
+  if grep -q 'SCRIPT_DIR/\.\./\.\./omarchy' "$BRIDGE_ROOT/bin/fetch-omarchy.sh" \
+    "$BRIDGE_ROOT/bin/install-omarchy-on-cachyos.sh" 2>/dev/null; then
+    bad "bridge patch" "ADR-0001 installer path fix has been reverted" \
+      "upstream reset the ../../omarchy path — reapply before re-running the installer"
+  else
+    ok "bridge patch" "ADR-0001 path fix intact (uncommitted, as expected)"
+  fi
+else
+  warn "bridge" "$BRIDGE_ROOT missing — cannot re-run the Omarchy installer"
+fi
+
+if [[ -d $HOME/omarchy ]]; then
+  bad "stale clone" "~/omarchy exists again" \
+      "ADR-0001: this is the wrong-path clone, it should not come back"
+else
+  ok "stale clone" "no ~/omarchy"
+fi
+
+# ---------------------------------------------------------
+# Desktop — Omarchy
+# ---------------------------------------------------------
+
+layer "Desktop (Omarchy)"
+
+if [[ -d $OMARCHY_ROOT/.git ]]; then
+  ok "checkout" "$(git -C "$OMARCHY_ROOT" describe --tags --always 2>/dev/null || echo present)"
+
+  # Omarchy's tree is NOT pristine here and should not be. The bridge installer
+  # seds CachyOS adaptations directly into it (ADR-0001), so these files are
+  # expected to show as modified. They are uncommitted, which means an
+  # `omarchy update` git pull can revert them — so check the adaptations
+  # themselves rather than just counting dirty files.
+  expected='^(install\.sh|install/(config/(hardware/(network|nvidia)|omarchy-ai-skill|walker-elephant)\.sh|login/all\.sh|omarchy-base\.packages|post-install/all\.sh|preflight/all\.sh)|bin/omarchy-update-restart)$'
+
+  unexpected=$(git -C "$OMARCHY_ROOT" status --porcelain 2>/dev/null |
+    awk '{print $2}' | grep -vE "$expected" || true)
+  if [[ -n $unexpected ]]; then
+    bad "checkout" "edits upstream does not expect" $unexpected \
+      "the bridge's CachyOS patches are fine; these are not — they vanish on update"
+  fi
+
+  # Three sentinels for the CachyOS adaptation, one per failure mode it prevents.
+  reverted=()
+  grep -qx 'tldr' "$OMARCHY_ROOT/install/omarchy-base.packages" 2>/dev/null &&
+    reverted+=("tldr back in omarchy-base.packages — conflicts with tealdeer")
+  grep -q 'preflight/pacman\.sh' "$OMARCHY_ROOT/install/preflight/all.sh" 2>/dev/null &&
+    reverted+=("preflight/pacman.sh restored — conflicts with CachyOS packages")
+  grep -q 'linux-cachyos' "$OMARCHY_ROOT/bin/omarchy-update-restart" 2>/dev/null ||
+    reverted+=("omarchy-update-restart no longer CachyOS-aware — kernel restart prompts break")
+
+  if ((${#reverted[@]})); then
+    bad "cachyos patch" "${#reverted[@]} bridge adaptation(s) reverted" "${reverted[@]}" \
+      "re-run ~/omarchy-on-cachyos/bin/install-omarchy-on-cachyos.sh"
+  else
+    ok "cachyos patch" "bridge adaptations intact"
+  fi
+else
+  bad "checkout" "$OMARCHY_ROOT is not a git checkout"
+fi
+
+# Omarchy backs a file up as <name>.bak.<epoch> right before overwriting it. On a
+# stowed machine the thing it overwrote was one of our symlinks, so these are the
+# fingerprint of a config we may have silently lost.
+mapfile -t backups < <(find "$HOME/.config" -name '*.bak.*' -newer "$STATE_DIR/last-heal" 2>/dev/null)
+if ((${#backups[@]})); then
+  warn "clobbers" "${#backups[@]} config backup(s) since last heal"
+  printf '    %s\n' "${backups[@]#$HOME/}"
+fi
+
+# ---------------------------------------------------------
+# Rice — this repo
+# ---------------------------------------------------------
+
+layer "Rice ($RICE_ROOT)"
+
+if [[ ! -d $RICE_ROOT/.git ]]; then
+  bad "repo" "$RICE_ROOT is not a git checkout"
+  exit 1
+fi
+
+# Every tracked config file should reach $HOME as a symlink pointing back here.
+# A real file means something overwrote the link and our version is not live.
+linked=0
+clobbered=()
+missing=()
+while IFS= read -r f; do
+  target="$HOME/$f"
+  if [[ -L $target ]]; then
+    linked=$((linked + 1))
+  elif [[ -e $target ]]; then
+    clobbered+=("$f")
+  else
+    missing+=("$f")
+  fi
+  # Excludes repo-only paths (never stowed) and Stow's own metadata, which
+  # .stow-local-ignore deliberately keeps out of $HOME.
+done < <(git -C "$RICE_ROOT" ls-files |
+  grep -vE '^(docs/|packages/|migrations/|README|CONTEXT|packages\.txt|\.gitignore|\.stow-local-ignore)')
+
+((linked)) && ok "symlinks" "$linked live"
+((${#clobbered[@]})) && bad "symlinks" "${#clobbered[@]} replaced by real files" "${clobbered[@]}"
+((${#missing[@]})) && bad "symlinks" "${#missing[@]} not installed" "${missing[@]}"
+
+# Repo-only files must not be stowed into $HOME. Anything matched here escaped
+# .stow-local-ignore.
+leaks=()
+for f in CONTEXT.md README.md packages.txt docs packages migrations; do
+  [[ -e $HOME/$f ]] && leaks+=("~/$f")
+done
+if ((${#leaks[@]})); then
+  bad "leaks" "${#leaks[@]} repo-only path(s) in \$HOME" "${leaks[@]}" \
+    "add them to .stow-local-ignore, then remove the links"
+else
+  ok "leaks" "no repo-only paths in \$HOME"
+fi
+
+if [[ -n $(git -C "$RICE_ROOT" status --porcelain) ]]; then
+  bad "git" "uncommitted changes" \
+    "$(git -C "$RICE_ROOT" status --short | sed -n '1,6p')"
+else
+  ok "git" "clean"
+fi
+
+# ---------------------------------------------------------
+# Packages and migrations
+# ---------------------------------------------------------
+
+layer "Packages"
+
+if rice-packages --quiet 2>/dev/null; then
+  ok "manifest" "all chosen packages installed"
+else
+  bad "manifest" "manifest and system disagree" "run 'rice packages' for the diff"
+fi
+
+layer "Migrations"
+
+pending=0
+if [[ -d $RICE_ROOT/migrations ]]; then
+  applied="$STATE_DIR/applied"
+  for m in "$RICE_ROOT"/migrations/*.sh; do
+    [[ -e $m ]] || continue
+    grep -qxF "$(basename "$m")" "$applied" 2>/dev/null || pending=$((pending + 1))
+  done
+fi
+if ((pending)); then
+  bad "pending" "$pending migration(s) not yet applied" "run 'rice heal'"
+else
+  ok "pending" "none"
+fi
+
+# ---------------------------------------------------------
+
+echo
+if ((problems)); then
+  printf '\033[31m%d problem(s).\033[0m Run \033[1mrice heal\033[0m to fix what is fixable.\n' "$problems"
+  exit 1
+fi
+printf '\033[32mNo problems.\033[0m\n'

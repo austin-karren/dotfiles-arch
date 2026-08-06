@@ -1,0 +1,61 @@
+#!/bin/bash
+
+# Pin a wallpaper so it survives theme changes.
+#
+# Omarchy treats backgrounds as a property of the theme: they live in
+# ~/.config/omarchy/current/theme/backgrounds/, and omarchy-theme-set does
+# `rm -rf` on that directory and repopulates it from the new theme. Any wallpaper
+# selected from a theme therefore cannot outlive that theme.
+#
+# So copy the image somewhere stable, record it, and let
+# theme-set.d/30-restore-wallpaper re-apply it after every theme change.
+#
+#   pin-wallpaper              pin the wallpaper currently in use
+#   pin-wallpaper <image>      pin a specific image
+#   pin-wallpaper --off        unpin; wallpapers follow the theme again
+#   pin-wallpaper --status     show what is pinned
+
+set -e
+
+PIN_DIR="$HOME/.local/share/wallpapers"
+MARKER="$HOME/.local/state/omarchy/wallpaper-pin"
+CURRENT_LINK="$HOME/.config/omarchy/current/background"
+
+mkdir -p "$PIN_DIR" "$(dirname "$MARKER")"
+
+case "$1" in
+--off)
+  rm -f "$MARKER"
+  echo "Wallpaper unpinned - backgrounds will follow the theme again."
+  exit 0
+  ;;
+--status)
+  if [[ -f $MARKER ]]; then
+    pinned=$(<"$MARKER")
+    echo "Pinned: $pinned"
+    [[ -f $pinned ]] || echo "WARNING: that file no longer exists."
+  else
+    echo "No wallpaper pinned - backgrounds follow the theme."
+  fi
+  exit 0
+  ;;
+esac
+
+source_image="${1:-$(readlink -f "$CURRENT_LINK")}"
+
+if [[ ! -f $source_image ]]; then
+  echo "Not a file: $source_image" >&2
+  exit 1
+fi
+
+# Copy out of the theme directory so the image cannot be deleted underneath us.
+dest="$PIN_DIR/$(basename "$source_image")"
+if [[ $(readlink -f "$source_image") != "$(readlink -f "$dest" 2>/dev/null)" ]]; then
+  cp -f "$source_image" "$dest"
+fi
+
+echo "$dest" >"$MARKER"
+omarchy-theme-bg-set "$dest"
+
+echo "Pinned: $dest"
+notify-send -u low "Wallpaper pinned" "$(basename "$dest")"
