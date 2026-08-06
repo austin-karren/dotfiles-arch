@@ -59,7 +59,7 @@ logical_size() {
   fi
   # Probe: Hyprland resolves the percentage against the true logical size.
   hyprctl dispatch resizeactive exact 100% 100% >/dev/null
-  read -t 0.08 -u 9 9<> <(:) || true
+  read -r -t 0.08 -u 9 9<> <(:) || true
   read -r lw lh < <(hyprctl activewindow -j | jq -r '"\(.size[0]) \(.size[1])"')
   mkdir -p "$(dirname "$CACHE")"
   printf '%s\t%s\t%s\n' "$key" "$lw" "$lh" >>"$CACHE"

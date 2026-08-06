@@ -29,6 +29,9 @@ STATE_DIR="${XDG_STATE_HOME:-$RICE_HOME/.local/state}/rice"
 # real $HOME.
 export RICE_HOME RICE_ROOT
 APPLIED="$STATE_DIR/applied"
+
+# Must match rice-doctor's list and .stow-local-ignore — see the note there.
+REPO_ONLY='^(docs/|packages/|migrations/|test/|README|CONTEXT|packages\.txt|\.gitignore|\.stow-local-ignore)'
 dry_run=false
 [[ ${1:-} == --dry-run ]] && dry_run=true
 
@@ -67,7 +70,7 @@ while IFS= read -r f; do
   # Same exclusions as rice-doctor: repo-only paths and Stow metadata never
   # belong in $RICE_HOME, so a real file at those paths is not a displaced symlink.
 done < <(git -C "$RICE_ROOT" ls-files |
-  grep -vE '^(docs/|packages/|migrations/|README|CONTEXT|packages\.txt|\.gitignore|\.stow-local-ignore)')
+  grep -vE "$REPO_ONLY")
 
 # ---------------------------------------------------------
 # 2. Stow anything not yet installed

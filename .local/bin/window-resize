@@ -60,7 +60,7 @@ die() {
   exit 1
 }
 
-settle() { read -t 0.05 -u 9 9<> <(:) || true; }
+settle() { read -r -t 0.05 -u 9 9<> <(:) || true; }
 
 mode() { [[ -f $CLAMP_FLAG ]] && echo clamp || echo wrap; }
 
@@ -131,7 +131,7 @@ active=$(hyprctl activewindow -j)
 if [[ $(jq -r '.floating' <<<"$active") == true ]]; then
   read -r _lw _lh fx0 fy0 fuw fuh < <(float-snap --usable-area) || exit 0
   [[ -n ${fuw:-} ]] || exit 0
-  read -r cx cy cw ch < <(jq -r '"\(.at[0]) \(.at[1]) \(.size[0]) \(.size[1])"' <<<"$active")
+  read -r _cx _cy cw ch < <(jq -r '"\(.at[0]) \(.at[1]) \(.size[0]) \(.size[1])"' <<<"$active")
 
   if [[ $axis == w ]]; then
     frac=$(next_rung "$cw" "$fuw")

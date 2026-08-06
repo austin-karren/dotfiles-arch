@@ -18,6 +18,13 @@ set -uo pipefail
 # home directory unless it was asked to.
 RICE_HOME="${RICE_HOME:-$HOME}"
 RICE_ROOT="${RICE_ROOT:-$RICE_HOME/dotfiles}"
+
+# Tracked paths that are repo furniture, not config, and so must never be
+# symlinked into the home directory. This has to agree with .stow-local-ignore
+# — they answer the same question from opposite ends, and when they disagree
+# doctor reports a file as missing that stow was never going to install. The
+# test suite asserts they stay in step.
+REPO_ONLY='^(docs/|packages/|migrations/|test/|README|CONTEXT|packages\.txt|\.gitignore|\.stow-local-ignore)'
 BRIDGE_ROOT="${BRIDGE_ROOT:-$RICE_HOME/omarchy-on-cachyos}"
 OMARCHY_ROOT="${OMARCHY_PATH:-$RICE_HOME/.local/share/omarchy}"
 STATE_DIR="${XDG_STATE_HOME:-$RICE_HOME/.local/state}/rice"
@@ -59,6 +66,7 @@ else
 fi
 
 if [[ -d $RICE_HOME/omarchy ]]; then
+  # shellcheck disable=SC2088  # display text for a human, not a path to expand
   bad "stale clone" "~/omarchy exists again" \
       "ADR-0001: this is the wrong-path clone, it should not come back"
 else
@@ -81,10 +89,13 @@ if [[ -d $OMARCHY_ROOT/.git ]]; then
   # themselves rather than just counting dirty files.
   expected='^(install\.sh|install/(config/(hardware/(network|nvidia)|omarchy-ai-skill|walker-elephant)\.sh|login/all\.sh|omarchy-base\.packages|post-install/all\.sh|preflight/all\.sh)|bin/omarchy-update-restart)$'
 
-  unexpected=$(git -C "$OMARCHY_ROOT" status --porcelain 2>/dev/null |
-    awk '{print $2}' | grep -vE "$expected" || true)
-  if [[ -n $unexpected ]]; then
-    bad "checkout" "edits upstream does not expect" $unexpected \
+  # Read into an array so each path becomes its own detail line. Relying on word
+  # splitting instead would break on a filename containing a space, and could
+  # glob if one contained a *.
+  mapfile -t unexpected < <(git -C "$OMARCHY_ROOT" status --porcelain 2>/dev/null |
+    awk '{print $2}' | grep -vE "$expected")
+  if ((${#unexpected[@]})); then
+    bad "checkout" "edits upstream does not expect" "${unexpected[@]}" \
       "the bridge's CachyOS patches are fine; these are not — they vanish on update"
   fi
 
@@ -149,7 +160,7 @@ while IFS= read -r f; do
   # Excludes repo-only paths (never stowed) and Stow's own metadata, which
   # .stow-local-ignore deliberately keeps out of $RICE_HOME.
 done < <(git -C "$RICE_ROOT" ls-files |
-  grep -vE '^(docs/|packages/|migrations/|README|CONTEXT|packages\.txt|\.gitignore|\.stow-local-ignore)')
+  grep -vE "$REPO_ONLY")
 
 ((linked)) && ok "symlinks" "$linked live"
 ((${#clobbered[@]})) && bad "symlinks" "${#clobbered[@]} replaced by real files" "${clobbered[@]}"
@@ -159,6 +170,7 @@ done < <(git -C "$RICE_ROOT" ls-files |
 # .stow-local-ignore.
 leaks=()
 for f in CONTEXT.md README.md packages.txt docs packages migrations; do
+  # shellcheck disable=SC2088  # leaks is only ever printed, never used as a path
   [[ -e $RICE_HOME/$f ]] && leaks+=("~/$f")
 done
 if ((${#leaks[@]})); then
@@ -169,8 +181,10 @@ else
 fi
 
 if [[ -n $(git -C "$RICE_ROOT" status --porcelain) ]]; then
-  bad "git" "uncommitted changes" \
-    "$(git -C "$RICE_ROOT" status --short | sed -n '1,6p')"
+  # One array element per line: bad() indents each detail, so passing the whole
+  # status as a single argument would leave every line after the first flush left.
+  mapfile -t dirty < <(git -C "$RICE_ROOT" status --short | sed -n '1,6p')
+  bad "git" "uncommitted changes" "${dirty[@]}"
 else
   ok "git" "clean"
 fi

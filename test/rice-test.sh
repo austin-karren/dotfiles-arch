@@ -123,7 +123,11 @@ make_home() {
 
   # The bridge, with the ADR-0001 path fix applied
     mkdir -p "$home/omarchy-on-cachyos/bin"
+    # Single quotes on purpose: doctor greps these files for the literal string
+    # SCRIPT_DIR/../omarchy, so expanding it here would defeat the test.
+    # shellcheck disable=SC2016
     printf 'TARGET_DIR="$SCRIPT_DIR/../omarchy"\n' >"$home/omarchy-on-cachyos/bin/fetch-omarchy.sh"
+    # shellcheck disable=SC2016
     printf 'OMARCHY_DIR="$SCRIPT_DIR/../omarchy"\n' >"$home/omarchy-on-cachyos/bin/install-omarchy-on-cachyos.sh"
   } >/dev/null 2>&1
 
@@ -285,6 +289,68 @@ out=$(RICE_HOME="$home" PATH="$ROOT/.local/bin:$PATH" rice nonesuch 2>&1)
 status=$?
 assert_contains "rice: rejects an unknown command" "$out" "no such command"
 assert_equals "rice: exits non-zero on an unknown command" "$status" "1"
+
+# ---------------------------------------------------------
+# repo-only paths
+# ---------------------------------------------------------
+
+# .stow-local-ignore and the scripts' REPO_ONLY answer the same question from
+# opposite ends: what is repo furniture rather than config. When they disagree,
+# doctor reports a file as missing that stow was never going to install — which
+# is exactly what happened when test/ was added to one and not the other.
+missing_from_scripts=()
+while IFS= read -r line; do
+  # Only the top-level anchored entries; the rest are Stow's own defaults.
+  [[ $line =~ ^\^/([A-Za-z_.\\]+)\$$ ]] || continue
+  name=${BASH_REMATCH[1]//\\/}
+  for s in rice-doctor rice-heal; do
+    grep -q "REPO_ONLY=.*${name%%.*}" "$ROOT/.local/bin/$s" ||
+      missing_from_scripts+=("$name missing from $s")
+  done
+done <"$ROOT/.stow-local-ignore"
+
+if ((${#missing_from_scripts[@]})); then
+  fail "repo-only lists agree between .stow-local-ignore and the scripts" \
+    "${missing_from_scripts[@]}"
+else
+  pass "repo-only lists agree between .stow-local-ignore and the scripts"
+fi
+
+# ---------------------------------------------------------
+# lint
+# ---------------------------------------------------------
+#
+# Note the section header above says "lint", not the tool's name: a comment
+# consisting of just "# shellcheck" is read as a malformed directive and fails
+# the parse.
+
+# Every tracked shell script, not just the rice CLI — these are what keybindings
+# and bar modules call, so a quoting bug here breaks the desktop rather than a
+# test. Kept at zero findings on purpose: a linter that tolerates known noise
+# stops being read, so anything genuinely intentional carries a disable comment
+# with a reason rather than being left to accumulate.
+if command -v shellcheck &>/dev/null; then
+  mapfile -t scripts < <(
+    cd "$ROOT" && git ls-files |
+      grep -E '^(\.local/bin/|migrations/|test/|\.config/omarchy/hooks/)'
+  )
+  findings=0
+  for s in "${scripts[@]}"; do
+    # Match on the shebang rather than an extension: nothing in .local/bin has one.
+    head -1 "$ROOT/$s" | grep -q '^#!.*\(bash\|sh\)' || continue
+    # Run from the repo root so findings quote a relative path, rather than
+    # stripping a prefix afterwards — the obvious ${out//$ROOT\//} is a
+    # construct shellcheck itself cannot parse.
+    if ! out=$(cd "$ROOT" && shellcheck -f gcc "$s" 2>&1); then
+      findings=$((findings + 1))
+      printf '  # %s\n' "$out"
+    fi
+  done
+  assert_equals "shellcheck: no findings across every tracked script" "$findings" "0"
+else
+  # Not a silent skip: an absent linter should be visible in the output.
+  printf '# skip - shellcheck not installed, %d checks not run\n' 1
+fi
 
 # ---------------------------------------------------------
 

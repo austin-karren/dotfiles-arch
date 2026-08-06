@@ -66,7 +66,9 @@ case "$1" in
   if [[ $(cat "$HOME/.config/omarchy/current/theme.name" 2>/dev/null) == "$slug" ]]; then
     die "$slug is the current theme - switch away first (omarchy theme set ...)"
   fi
-  rm -rf "$USER_THEMES/$slug"
+  # :? on both halves — this is the only rm -rf in the rice, and an empty
+  # variable here would aim it at / instead of a theme directory.
+  rm -rf "${USER_THEMES:?}/${slug:?}"
   echo "Removed theme: $slug"
   exit 0
   ;;
@@ -127,7 +129,7 @@ if [[ $(sed -n 's/^mode[[:space:]]*=[[:space:]]*"\([a-z]*\)".*/\1/p' "$STAGE/col
   echo "  marked as a light theme (light.mode)"
 fi
 
-echo "$(basename "$WALLPAPER")" >"$STAGE/$MARKER"
+basename "$WALLPAPER" >"$STAGE/$MARKER"
 
 mkdir -p "$USER_THEMES"
 rm -rf "$DEST"
