@@ -76,6 +76,38 @@
   padding: 0;
 }
 
+/* Bluetooth is the one exception to the shared box above, and it is a glyph-shape
+   exception rather than a state-dependent one.
+   ---------------------------------------------------------------------------
+   The bluetooth rune is narrow: 11 physical px of ink at 1.67x, against 16..18 for
+   every neighbour, at the same 16px ink height. Centred in the shared 18px box it
+   therefore carries ~9px of air per side where its neighbours carry ~5, and the
+   surplus reads as a hole -- most visibly to the LEFT of the network globe, which
+   is the widest single gap in the cluster.
+
+   Sizing the box to the glyph family it holds, not to a global constant, is what the
+   uniform-box rule was always doing; 18px simply assumed one family. All four
+   bluetooth states are the Material Design rune (U+F00AF on, U+F00B2 off/disabled,
+   U+F00B1 connected) and measure 11, 13 and 15 physical px, so a 15px box (25
+   physical) still exceeds the widest state and the module cannot clip or reflow as
+   devices connect. That is the property that mattered -- not the constant itself.
+
+   Measured ink gaps across the status run, physical px at 1.67x:
+     before  31, 32, 38, 33   (spread 7, the 38 sitting left of the globe)
+     after   31, 31, 35, 33   (spread 4)
+   The remaining 35 is ratio's own ink sitting ~2px right of its box centre, a
+   subpixel rounding artifact that moves when ratio toggles glyph -- so correcting
+   for it here would be tuning against a neighbour's state, exactly what the rule
+   above forbids. Left alone deliberately.
+
+   The wider gap before the tray chevron is not this defect and is not tuned out:
+   #custom-expand-icon sits inside group/tray-expander, whose own layout governs it
+   (verified -- min-width there changes nothing), and the gap reads as the boundary
+   between the drawer and the status run. */
+#bluetooth {
+  min-width: 15px;
+}
+
 #tray {
   margin-right: 16px;
 }
