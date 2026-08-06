@@ -1,0 +1,8 @@
+# Provider-level config for the menus provider.
+#
+# min_score raises the bar for a fuzzy match to count. Elephant's matcher is a loose
+# SUBSEQUENCE match over a composite of the entry's fields, so at the default threshold a
+# query like "term" matches "Theme" (t-h-e...m from the subtext) and buries what you
+# actually wanted. The palette sits in the same list as the applications, so a weak match
+# here costs an application its place.
+min_score = 60

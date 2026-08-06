@@ -1,8 +1,9 @@
 # Omarchy writes these when it migrates a config you've edited
 *.bak.*
 
-# Personal identity — see README. Never track this.
+# Personal identity — see README. Never track these.
 .gitconfig.local
+.bashrc.local
 
 # Secrets / local env
 .env

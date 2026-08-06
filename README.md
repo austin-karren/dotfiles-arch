@@ -56,6 +56,27 @@ commits with "please tell me who you are". If you see that, this file is why.
 Note: git reads `~/.gitconfig` only when `~/.config/git/config` does not exist.
 Since this repo installs the latter, a stray `~/.gitconfig` is ignored entirely.
 
+## Optional: shell identity
+
+`.bashrc` ends with the same pattern, for anything carrying an account name or a
+secret:
+
+```bash
+[[ -f ~/.bashrc.local ]] && source ~/.bashrc.local
+```
+
+Create that file (gitignored, never committed) with whatever this machine needs —
+currently the AWS profile:
+
+```bash
+export AWS_PROFILE=your-profile
+export AWS_SDK_LOAD_CONFIG=1
+```
+
+Unlike the git include this one is guarded, so a missing file is harmless: the
+shell starts fine and you simply have no AWS profile. It is sourced **last**, so
+it can also override anything the tracked `.bashrc` set.
+
 ## What's here
 
 | Path | Notes |
@@ -130,7 +151,7 @@ are the to-do list.
 | [0009](./docs/adr/0009-waybar-stays-dark-in-every-theme.md) | The bar stays dark in every theme | accepted |
 | [0010](./docs/adr/0010-split-xcompose-to-track-it.md) | Split `~/.XCompose` so it can be tracked | proposed |
 | [0011](./docs/adr/0011-extend-second-click-dismissal-to-audio-and-cpu.md) | Second-click dismissal for audio and CPU | proposed |
-| [0012](./docs/adr/0012-unify-launcher-and-palette-on-elephant-menus.md) | Unify Launcher and System Palette | proposed |
+| [0012](./docs/adr/0012-unify-launcher-and-palette-on-elephant-menus.md) | Unify Launcher and System Palette | superseded by 0027 |
 | [0013](./docs/adr/0013-promote-the-ratio-toggle-to-the-bar.md) | Single-window aspect-ratio toggle onto the bar | accepted |
 | [0014](./docs/adr/0014-ghostty-split-keybinds.md) | Ghostty split keybinds, and bind `close_surface` | accepted |
 | [0015](./docs/adr/0015-replace-tmux-with-herdr.md) | Replace tmux with herdr | proposed |
@@ -145,6 +166,7 @@ are the to-do list.
 | [0024](./docs/adr/0024-floating-placement-keys.md) | Floating windows get placement keys | accepted |
 | [0025](./docs/adr/0025-resize-windows-by-dragging-borders.md) | Resize windows by dragging their borders | accepted |
 | [0026](./docs/adr/0026-zen-ratio-instead-of-a-square.md) | Single-window **zen** aspect ratio, 6:5 not square | accepted |
+| [0027](./docs/adr/0027-one-list-for-apps-and-commands.md) | One list for applications and system commands | accepted |
 
 ## To do
 

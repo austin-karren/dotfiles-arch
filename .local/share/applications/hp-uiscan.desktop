@@ -1,0 +1,14 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Terminal=false
+Name=HP Scan
+GenericName=Scanner
+Comment=HP Printer/Scanner Utility - Scan
+Exec=/usr/bin/hp-uiscan
+# Upstream hplip hardcodes /usr/share/icons/Humanity/devices/48/printer.svg,
+# an Ubuntu-only theme that isn't installed here, so the launcher shows no icon.
+# Use the themed name instead: resolves in Yaru-magenta and falls back to Adwaita.
+Icon=scanner
+Categories=Graphics;Scanning;
+Keywords=scan;scanner;hp;hplip;printer;
