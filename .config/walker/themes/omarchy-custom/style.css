@@ -113,6 +113,19 @@ child:selected {
   -gtk-icon-transform: scale(0.9);
 }
 
+/* Text-icon slot, used by rows whose icon is a font glyph rather than an image -- the
+   system palette's entries. item.xml gives it width-chars=2 and no margin, so without
+   this its labels sit ~13px left of the application labels in the same list.
+
+   Mirrors .item-image above deliberately: same box width, same right margin, so both
+   row types put their label at the same x. Measured residual after this: ~1px, from the
+   font-derived natural width being a shade over 18px. Do not "simplify" this to a bare
+   margin-right -- the min-width is what pins the column when a glyph is narrow. */
+.item-image-text {
+  min-width: 18px;
+  margin-right: 14px;
+}
+
 .current {
   font-style: italic;
 }
