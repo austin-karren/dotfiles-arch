@@ -11,7 +11,7 @@ echo "Remove repo-only paths that Stow leaked into \$HOME"
 # user created on purpose is left alone.
 
 for name in CONTEXT.md README.md docs packages migrations; do
-  path="$HOME/$name"
+  path="${RICE_HOME:-$HOME}/$name"
   [[ -L $path ]] || continue
   case "$(readlink "$path")" in
   *dotfiles/*)
