@@ -1,0 +1,45 @@
+---
+status: accepted
+---
+
+# The audio TUI opens on Output Devices
+
+wiremix starts on the Output Devices tab instead of Playback. One line of config:
+
+```toml
+tab = "output"
+```
+
+The question that sends you to this TUI is nearly always *which device is the sound
+coming out of* — speakers, the monitor over HDMI, bluetooth earbuds. That is the
+Output tab. Playback lists per-application streams, which is the rarer question and
+one keypress away on F1.
+
+## Why config and not a flag
+
+The Waybar headphones icon is the usual way in, and `on-click` could just as easily
+have been `wiremix -v output`. It isn't, because the Omarchy menu's audio entry and
+any future keybind go through the same binary and would keep landing on Playback.
+"Default tab" should mean the default everywhere, so it belongs in wiremix's own
+config.
+
+## Why the file had to be adopted first
+
+`~/.config/wiremix/wiremix.toml` already existed and was **byte-identical to
+Omarchy's** `config/wiremix/wiremix.toml`, as an untracked regular file. Editing it
+in place would have worked until the next `omarchy update` rewrote it — the exact
+displacement failure ADR-0028 exists to catch, and one that leaves no trace in
+`git status` because the file was never ours.
+
+So it moved into the rice as a tracked file and is now stowed like everything else,
+which is what makes the single line above durable. Everything in it except `tab` is
+still Omarchy's, and the header comment says so, because a future reader diffing
+against upstream should be able to see at a glance which line is the deviation.
+
+## Consequences
+
+The rice now owns a file it barely modifies, so it will not pick up improvements
+Omarchy makes to the rest of that config. `loaf doctor` cannot help here — it checks
+that tracked files are symlinks to the repo, not whether the repo's copy has drifted
+behind an upstream default it was forked from. The mitigation is the header comment
+and the upstream URL already in the file, not a check.
