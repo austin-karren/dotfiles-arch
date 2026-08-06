@@ -8,7 +8,7 @@
 # above it, so this asserts what should be true and reports what is not.
 #
 # Read-only by construction: it never writes, never sudos, and never touches the
-# network. `rice heal` is the half that fixes things. Exits non-zero if anything
+# network. `loaf heal` is the half that fixes things. Exits non-zero if anything
 # is wrong, so it can gate a hook.
 
 set -uo pipefail
@@ -198,7 +198,7 @@ layer "Packages"
 if loaf-packages --quiet 2>/dev/null; then
   ok "manifest" "all chosen packages installed"
 else
-  bad "manifest" "manifest and system disagree" "run 'rice packages' for the diff"
+  bad "manifest" "manifest and system disagree" "run 'loaf packages' for the diff"
 fi
 
 layer "Migrations"
@@ -212,7 +212,7 @@ if [[ -d $LOAF_ROOT/migrations ]]; then
   done
 fi
 if ((pending)); then
-  bad "pending" "$pending migration(s) not yet applied" "run 'rice heal'"
+  bad "pending" "$pending migration(s) not yet applied" "run 'loaf heal'"
 else
   ok "pending" "none"
 fi
@@ -221,7 +221,7 @@ fi
 
 echo
 if ((problems)); then
-  printf '\033[31m%d problem(s).\033[0m Run \033[1mrice heal\033[0m to fix what is fixable.\n' "$problems"
+  printf '\033[31m%d problem(s).\033[0m Run \033[1mloaf heal\033[0m to fix what is fixable.\n' "$problems"
   exit 1
 fi
 printf '\033[32mNo problems.\033[0m\n'

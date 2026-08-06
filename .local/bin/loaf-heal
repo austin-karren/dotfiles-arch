@@ -3,7 +3,7 @@
 # loaf:summary=Re-assert the rice on top of whatever the base layers did
 # loaf:args=[--dry-run]
 
-# The reconciliation half of `rice doctor`. Runs after an Omarchy or CachyOS
+# The reconciliation half of `loaf doctor`. Runs after an Omarchy or CachyOS
 # update — automatically via ~/.config/omarchy/hooks/post-update.d — to put the
 # rice back on top of a base that moved underneath it.
 #
@@ -136,7 +136,7 @@ $dry_run || touch "$STATE_DIR/last-heal"
 
 echo
 if ((changed)); then
-  printf '\033[32m%d change(s).\033[0m Run \033[1mrice doctor\033[0m to confirm.\n' "$changed"
+  printf '\033[32m%d change(s).\033[0m Run \033[1mloaf doctor\033[0m to confirm.\n' "$changed"
 else
   printf 'Nothing to heal.\n'
 fi

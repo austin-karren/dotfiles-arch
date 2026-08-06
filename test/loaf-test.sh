@@ -291,6 +291,35 @@ assert_contains "loaf: rejects an unknown command" "$out" "no such command"
 assert_equals "loaf: exits non-zero on an unknown command" "$status" "1"
 
 # ---------------------------------------------------------
+# no stale command name
+# ---------------------------------------------------------
+
+# The CLI used to carry the old name, and the rename left seven separate stale
+# strings that only turned up by reading output — a usage line, a prefix strip,
+# and several suggestions pointing at a command that no longer exists, including
+# one in the post-update hook. Nothing else would have caught them.
+#
+# This comment deliberately avoids spelling the old command forms, since the
+# check below greps every tracked file and would otherwise match itself.
+#
+# Only the command forms are checked. The bare word "rice" is still correct
+# English here: CONTEXT.md defines it as the common noun for any customized
+# desktop, so prose like "the rice" and "this rice's own commands" must survive.
+stale=()
+while IFS= read -r hit; do
+  stale+=("$hit")
+done < <(
+  cd "$ROOT" && git ls-files |
+    xargs grep -nE "rice (doctor|heal|packages)|rice-(doctor|heal|packages)|RICE_[A-Z]" 2>/dev/null
+)
+
+if ((${#stale[@]})); then
+  fail "no stale 'rice' command names remain" "${stale[@]}"
+else
+  pass "no stale 'rice' command names remain"
+fi
+
+# ---------------------------------------------------------
 # repo-only paths
 # ---------------------------------------------------------
 

@@ -24,14 +24,14 @@ summary_of() {
 list_commands() {
   echo "Manage this machine's deviations from stock Omarchy."
   echo
-  echo "Usage: rice <command> [args]"
+  echo "Usage: loaf <command> [args]"
   echo
 
   local seen=() name path
   # Walk PATH rather than one fixed directory, so a command still resolves if it
   # is installed somewhere other than ~/.local/bin.
   while IFS= read -r path; do
-    name=${path##*/rice-}
+    name=${path##*/loaf-}
     [[ " ${seen[*]:-} " == *" $name "* ]] && continue
     seen+=("$name")
     printf '  %-10s %s\n' "$name" "$(summary_of "$path")"
@@ -52,8 +52,8 @@ command=$1
 shift
 
 if ! command -v "loaf-$command" &>/dev/null; then
-  echo "rice: no such command '$command'" >&2
-  echo "Run 'rice' to list what exists." >&2
+  echo "loaf: no such command '$command'" >&2
+  echo "Run 'loaf' to list what exists." >&2
   exit 1
 fi
 
