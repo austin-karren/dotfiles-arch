@@ -8,8 +8,30 @@ status: accepted
 `1/3, 1/2, 2/3` of the screen. Left/right act on width, up/down on height. Implemented
 as [`window-resize`](../../.local/bin/window-resize).
 
-The key's direction is spatial — right widens, down heightens — so no key ever means
-two things depending on context.
+The key's direction is spatial, but it names **where the shared edge goes, not whether
+the window grows**.
+
+A tiled window has exactly one movable edge — the one it shares with its neighbour —
+and which edge that is depends on which side of the split it sits on. The left-hand
+window shares its *right* edge; the right-hand window shares its *left*. So "right
+widens" can only ever be true for one of them. On the right-hand window it drags the
+shared edge leftwards, growing the window in the opposite direction to the key, which
+is what made the binding feel wrong from that side.
+
+So the ladder runs in the opposite order for the second child of a split. `RIGHT` moves
+the divider right whichever window is focused — widening the left one, narrowing the
+right one. Two consequences worth having: the gesture matches dragging that border with
+a mouse, and the two windows either side of a split answer the same key identically
+instead of fighting over it. Vertically the same argument applies — a bottom window's
+shared edge is its top, so `DOWN` pushes that edge down and shrinks it.
+
+**Floating windows are the exception.** They have no shared edge and resize about their
+own centre, so there left/up shrink and right/down grow unconditionally. That is the
+one place the same chord means two different things, and it is unavoidable: the rule
+above is defined by a boundary that a floating window does not have.
+
+This is also why the bindings are labelled `Resize left/right/up/down` rather than
+`Wider`/`Narrower` — no single one of those words is true for both sides of a split.
 
 Tiled and floating windows share the ladder and the keys but almost no machinery, and
 the asymmetry is worth stating because it is the reverse of what the file sizes suggest.
@@ -64,6 +86,16 @@ the sign flipped once if the window travelled away from the target.
 The same loop absorbs the chunking requirement from the bounds check. Ordinary
 layouts settle in one dispatch; awkward ones take two or three. Measured at ~96ms per
 keypress.
+
+**That one guess now decides two things**, and only one of them is self-correcting.
+The sign is verified by measurement and flipped if the window moved the wrong way; the
+ladder *direction* is chosen before any dispatch and is not revisited. So in the case
+the guess gets wrong — a window in the middle of a nested run of columns — the window
+still lands exactly on a rung, but potentially the rung on the other side of where it
+started. That is an acceptable trade rather than an oversight: a window with neighbours
+on *both* sides has two shared edges, so "which way does my edge go" has no single
+right answer to recover, and reconstructing the dwindle tree to guess better is the
+work this whole approach exists to avoid.
 
 ## Window count is the wrong invariant
 
@@ -133,6 +165,29 @@ Exercised against throwaway windows in every layout that matters:
 
 The fourth row is the case the original design worried about, working with no
 window-counting anywhere in the implementation.
+
+### The shared edge follows the key
+
+Measured separately when the ladder was flipped for second children. Two tiled
+terminals at 50/50, widths in px, then a vertical pair:
+
+| Focus | Key | Result | Divider |
+|---|---|---|---|
+| left window | `RIGHT` | left `1136 → 1536`, right `1136 → 736` | moved right |
+| right window | `RIGHT` | right `1120 → 767`, left `→ 1505` | moved right |
+| right window | `LEFT` | right `767 → 1152`, left `→ 1120` | moved left |
+| bottom window | `DOWN` ×2 | bottom `1002 → 752 → 501` (2/3 → 1/2 → 1/3) | moved down |
+| bottom window | `UP` ×2 | bottom `501 → 752 → 1002` | moved up |
+
+The divider column is the point: it tracks the key in every row, regardless of which
+window holds focus. Rows 2 and 3 are what changed — before this, both grew the right
+window.
+
+One measurement trap worth recording, because it cost a re-run: the first attempt at
+the bottom-window case started from a window already sitting at `1/3`, so pressing
+`DOWN` **wrapped** to `2/3` rather than shrinking, and read as a failure of the flip
+when it was correct wrap behaviour (see the carousel section). Test the direction from
+the middle of the ladder, not from an end.
 
 ## Keybinding
 

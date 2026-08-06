@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 #
 # Step the focused window through a Size ladder of screen fractions.
-# Left/up traverse the ladder down, right/down traverse it up. See ADR-0022.
+#
+# The arrow says where the SHARED EDGE goes, not whether the window grows: RIGHT moves
+# the divider right, so the left-hand window widens and the right-hand one narrows.
+# Tiled only - a floating window has no shared edge, so there left/up shrink and
+# right/down grow, unconditionally. See ADR-0022.
 #
 #   window-resize left|right|up|down
 #   window-resize --toggle-mode      # wrap <-> clamp at the ends of the ladder
@@ -172,6 +176,47 @@ tiled=$(jq --argjson ws "$ws" \
 
 read -r fx fy fw fh < <(jq -r '"\(.at[0]) \(.at[1]) \(.size[0]) \(.size[1])"' <<<"$active")
 
+# Which side of the boundary we are on. Used for two separate things below: the
+# direction of travel along the ladder (immediately here) and the sign of the delta
+# handed to Hyprland (further down).
+#
+# The test: a tiled window abuts our low edge - left for width, top for height - and
+# overlaps us on the other axis, so we are the SECOND child of the split. `+ 8`
+# absorbs the gap between windows.
+second_child=$(
+  jq -r --arg addr "$addr" --arg axis "$axis" \
+    --argjson fx "$fx" --argjson fy "$fy" --argjson fw "$fw" --argjson fh "$fh" '
+    [ .[] | select(.address != $addr)
+      | if $axis == "w"
+        then select(.at[0] + .size[0] <= $fx + 8 and .at[1] < $fy + $fh and .at[1] + .size[1] > $fy)
+        else select(.at[1] + .size[1] <= $fy + 8 and .at[0] < $fx + $fw and .at[0] + .size[0] > $fx)
+        end
+    ] | length > 0' <<<"$tiled"
+)
+
+# THE ARROW PUSHES THE SHARED EDGE, IT DOES NOT MEAN "BIGGER"
+#
+# A tiled window's only movable edge is the one it shares with its neighbour, and which
+# edge that is depends on which side of the split it sits on. The left-hand window
+# shares its RIGHT edge; the right-hand window shares its LEFT edge. So "right widens"
+# can only be true for one of them: on the right-hand window it would drag the shared
+# edge leftwards, growing the window in the opposite direction to the key.
+#
+# Flipping the ladder for the second child makes the key describe where the BOUNDARY
+# goes instead. RIGHT then moves the divider right whichever window is focused -
+# growing the left one, shrinking the right one - which is what dragging that border
+# with a mouse would do, and it means the two windows either side of a split respond
+# to the same key identically rather than fighting.
+#
+# Same argument vertically: a bottom window's shared edge is its top, so DOWN pushes
+# that edge down and shrinks it.
+if [[ $second_child == true ]]; then
+  case $step in
+  up) step=down ;;
+  down) step=up ;;
+  esac
+fi
+
 # Usable area excludes whatever Waybar reserved, so a "1/2" rung means half of the
 # space windows can actually occupy rather than half of the panel.
 #
@@ -218,19 +263,8 @@ target=$(awk -v f="$target_frac" -v u="$usable" 'BEGIN { printf "%d", f * u }')
 delta=$((target - cur))
 ((delta != 0)) || exit 0
 
-# Sign guess: if a tiled window abuts our low edge (left for width, top for height)
-# and overlaps us on the other axis, assume we are the second child of the split, so
-# the delta has to be inverted. `+ 8` absorbs the gap between windows.
-second_child=$(
-  jq -r --arg addr "$addr" --arg axis "$axis" \
-    --argjson fx "$fx" --argjson fy "$fy" --argjson fw "$fw" --argjson fh "$fh" '
-    [ .[] | select(.address != $addr)
-      | if $axis == "w"
-        then select(.at[0] + .size[0] <= $fx + 8 and .at[1] < $fy + $fh and .at[1] + .size[1] > $fy)
-        else select(.at[1] + .size[1] <= $fy + 8 and .at[0] < $fx + $fw and .at[0] + .size[0] > $fx)
-        end
-    ] | length > 0' <<<"$tiled"
-)
+# Same fact, second use: Hyprland's delta always grows the FIRST child, so a second
+# child needs it inverted. Computed above, before the ladder direction needed it.
 [[ $second_child == true ]] && sign=-1 || sign=1
 
 dispatch() {
