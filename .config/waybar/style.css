@@ -35,7 +35,6 @@
   opacity: 0.5;
 }
 
-#cpu,
 #battery,
 #pulseaudio,
 #custom-omarchy,
@@ -50,10 +49,9 @@
    width. Measured ink widths at the real render size (24 physical px):
 
      pulseaudio  15..28   (muted / volume levels / headphone / headset)
-     weather     15..27   (14 glyphs from omarchy-weather-icon: sun, moon, ...)
      network     20..24   (5 wifi strengths, ethernet, disconnected)
      bluetooth   12..18   (on / off / connected)
-     apexshot    23       cpu 18       expand-icon 12
+     apexshot    23       expand-icon 12
 
    So tuning margins for equal gaps between the CURRENT icons is self-defeating:
    swap the sun for a moon (+6px) or the speaker for headphones (+13px) and every
@@ -69,11 +67,9 @@
    Do not add per-module margins here -- that reintroduces state-dependent drift. */
 #custom-apexshot,
 #custom-ratio,
-#custom-weather,
 #bluetooth,
 #network,
 #pulseaudio,
-#cpu,
 #battery {
   min-width: 18px;
   margin: 0 5.7px;
@@ -97,17 +93,37 @@ tooltip {
   font-size: 10px;
 }
 
-#clock {
-  margin-left: 8.75px;
+/* Centre trio: #custom-calendar, #clock, #custom-weather.
+   ---------------------------------------------------------------------------
+   Every centre module carries a LEFT margin only, so each gap is written in
+   exactly one place and adjacent margins can never sum into a double gap.
+   #custom-calendar is leftmost and so needs none; the modules after weather
+   (#custom-update, #custom-voxtype, the indicators) already follow the same
+   rule further down.
+
+   The two icons get equal min-width so the trio stays symmetrical about the
+   date -- and, more importantly, so the weather glyph's 15..27px swing (sun to
+   moon to cloud) cannot slide the clock sideways under it. */
+#custom-calendar,
+#custom-weather {
+  min-width: 18px;
+  padding: 0;
 }
 
-/* Sits between #clock and #custom-update. Left margin only: #custom-update carries
-   its own margin, so a right margin here would double the gap on that side. */
-#custom-calendar {
-  min-width: 12px;
-  margin: 0 0 0 7.5px;
+/* 5.5px, not the 7.5px its neighbours (#custom-update, #custom-voxtype) use: the
+   trio is one thing -- a day, and the two ways to ask about it -- so it should bind
+   more tightly to itself than to the indicators beside it. Measured ink gaps land at
+   18px (calendar to date) and 21px (date to weather) at 1.67x, so the left gap is
+   exactly what the date/calendar pair sat at before weather joined them. The 3px
+   difference between the two is the clock's own right side bearing -- 'M' at the end
+   of "PM" -- which moves with the format string, so no margin can fix it. */
+#clock,
+#custom-weather {
+  margin: 0 0 0 5.5px;
 }
 
+/* No weather data: collapse to nothing rather than leave an 18px hole between
+   the date and whatever follows it. */
 #custom-weather.unavailable {
   min-width: 0;
   margin: 0;

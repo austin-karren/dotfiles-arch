@@ -5,16 +5,18 @@
   "spacing": 2,
   "height": 32,
   "modules-left": ["custom/omarchy", "hyprland/workspaces"],
-  "modules-center": ["clock", "custom/calendar", "custom/update", "custom/voxtype", "custom/screenrecording-indicator", "custom/idle-indicator", "custom/notification-silencing-indicator"],
+  // Centre reads left-to-right as calendar, date, weather: the two things you click
+  // to ask about a day flank the day itself. Weather lives here rather than in the
+  // right-hand cluster because it is about *now* like the clock is, not about the
+  // machine's state like everything on the right.
+  "modules-center": ["custom/calendar", "clock", "custom/weather", "custom/update", "custom/voxtype", "custom/screenrecording-indicator", "custom/idle-indicator", "custom/notification-silencing-indicator"],
   "modules-right": [
     "group/tray-expander",
     "custom/apexshot",
     "custom/ratio",
-    "custom/weather",
     "bluetooth",
     "network",
     "pulseaudio",
-    "cpu",
     "battery"
   ],
   "hyprland/workspaces": {
@@ -65,7 +67,7 @@
   // when on - so the icon shows what a lone window will do. See ~/.local/bin/ratio-toggle.
   //
   // Sits beside apexshot because both are actions rather than status; everything from
-  // weather rightwards reports something.
+  // bluetooth rightwards reports something.
   //
   // The interval is a fallback, not the mechanism. Clicking here signals the bar
   // immediately, but Ratio can also be flipped from the Toggle Menu, which calls
@@ -88,16 +90,15 @@
     "interval": 21600
   },
 
-  "cpu": {
-    "interval": 5,
-    "format": "󰍛",
-    "on-click": "omarchy-launch-or-focus-tui btop",
-    "on-click-right": "alacritty"
-  },
+  // No cpu module. The glyph was static -- it never reported load, only offered a
+  // click target for btop -- so it was a button wearing a status icon's clothes on a
+  // bar whose right cluster is otherwise all state. btop now lives on SUPER CTRL + T
+  // (hypr/bindings.conf), which is where an action belongs.
+
   // Toggles GNOME Calendar as a centered popup on a special workspace.
   // Backed by ~/.local/bin/calendar-toggle and the rules in ~/.config/hypr/windows.conf.
   // The glyph is U+F00ED nf-md-calendar_month, chosen to match the Material Design glyphs
-  // already used by cpu/network/battery rather than the Font Awesome set.
+  // already used by network/battery rather than the Font Awesome set.
   "custom/calendar": {
     "format": "󰃭",
     "tooltip-format": "Calendar\n\nClick to show or hide",
@@ -117,11 +118,14 @@
     "tooltip": false,
     "on-click": "notify-send -u low \"$(omarchy-weather-status)\""
   },
+  // Wired shows a globe (U+F059F nf-md-web), not the RJ45 port it replaced. The port
+  // names the cable; what you actually want to know at a glance is whether this machine
+  // is on the internet, which is the same question the wifi bars answer.
   "network": {
     "format-icons": ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"],
     "format": "{icon}",
     "format-wifi": "{icon}",
-    "format-ethernet": "󰈀",
+    "format-ethernet": "󰖟",
     "format-disconnected": "󰤮",
     "tooltip-format-wifi": "{essid} ({frequency} GHz)",
     "tooltip-format-ethernet": "Connected",
