@@ -26,6 +26,15 @@ default = [
   "websearch",
 ]
 
+# Walker queries a DIFFERENT provider list when the input is empty, and its shipped
+# default is `empty = ["desktopapplications"]` - applications only. Without this line the
+# palette is invisible until you type a character, which looks exactly like the provider
+# being broken. `default` above does not cover it.
+empty = [
+  "menus:palette",
+  "desktopapplications",
+]
+
 [[providers.prefixes]]
 prefix = "/"
 provider = "providerlist"
