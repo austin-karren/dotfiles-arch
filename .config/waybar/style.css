@@ -215,11 +215,19 @@ tooltip {
 }
 
 /* No weather data: collapse to nothing rather than leave an 18px hole between
-   the date and whatever follows it. */
+   the date and whatever follows it. Only reachable before the first successful
+   fetch ever — after that there is always a cached reading to draw (ADR-0031). */
 #custom-weather.unavailable {
   min-width: 0;
   margin: 0;
   padding: 0;
+}
+
+/* A cached reading more than three hours old still draws, because an old glyph
+   beats a hole, but dims so the bar is not claiming to be current. Opacity and
+   not a colour: the glyph keeps its meaning, it just stops asserting. */
+#custom-weather.stale {
+  opacity: 0.45;
 }
 
 .hidden {

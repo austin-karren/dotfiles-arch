@@ -123,6 +123,21 @@ else
   bad "checkout" "$OMARCHY_ROOT is not a git checkout"
 fi
 
+# weather-icon carries a byte-for-byte copy of omarchy-weather-icon's condition
+# code to glyph table, because upstream's version is welded to its own fetch and
+# cannot be called for the mapping alone (ADR-0031). A copy is drift waiting to
+# happen, so ask it whether the original still agrees. Cosmetic when it fails —
+# a new condition code renders as the fallback cloud, not as nothing — hence warn
+# rather than bad.
+if command -v weather-icon >/dev/null 2>&1; then
+  if weather-icon --check-icons >/dev/null 2>&1; then
+    ok "weather icons" "glyph table matches upstream"
+  else
+    warn "weather icons" "glyph table drifted from omarchy-weather-icon"
+    printf '    %s\n' "run: weather-icon --check-icons"
+  fi
+fi
+
 # Omarchy backs a file up as <name>.bak.<epoch> right before overwriting it. On a
 # stowed machine the thing it overwrote was one of our symlinks, so these are the
 # fingerprint of a config we may have silently lost.

@@ -242,6 +242,20 @@ hidden — a distinction each Toggle wrapper decides for itself based on how
 expensive the window is to restart.
 _Avoid_: close, hide, kill (each of those asserts a mechanism)
 
+**Reading**:
+The last known value a bar module drew, kept on disk so the module has something
+to show when its source is unreachable. A Reading is always drawn; what changes
+when a fetch fails is its age, never its presence. Weather is the one we have
+(`weather-icon`, ADR-0031).
+_Avoid_: cache (the file is a cache; the Reading is what the bar draws from it)
+
+**Stale**:
+A Reading old enough that the bar dims it rather than presenting it as current —
+three hours for weather. Distinct from _unavailable_, which means there has never
+been a Reading at all and the module collapses to nothing.
+_Avoid_: expired, invalid (a Stale Reading is still drawn, and still true of when
+it was taken)
+
 ## Closing things
 
 **Surface**:
