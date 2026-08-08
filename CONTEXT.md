@@ -72,6 +72,33 @@ wrote once. Named for the epoch second it was written, recorded in
 migration**, which is upstream's and runs on `omarchy update`.
 _Avoid_: migration (unqualified), fix script, patch
 
+## Software sources
+
+**Source**:
+Where an installed application came from — the pacman repos, the AUR, Flatpak, or
+an AppImage. The Manifest and the record cover only the first two; an app can be
+present on the machine and appear in neither.
+_Avoid_: package manager, backend, provider (Provider is Elephant's)
+
+**Export**:
+The desktop entry and icons a Flatpak publishes into a directory the Launcher
+already watches. Installing and Exporting are separate events, and only the
+second one makes an app findable — an app can be fully installed and completely
+invisible. The word is Flatpak's own.
+_Avoid_: install, register, symlink
+
+**Ref**:
+A `.flatpakref` — a pointer to one application and the remote it should be
+fetched from. Not the application, and not an archive of it: a Ref is a few
+hundred bytes and is useless offline.
+_Avoid_: package, flatpak file, installer
+
+**Origin remote**:
+The remote Flatpak records for an installed app so it can be updated later,
+created automatically from a Ref and named after it. Usually not Flathub, and
+usually not something to browse — it exists to make one app updatable.
+_Avoid_: remote, repo, source (Source is the category, not this)
+
 ## Appearance
 
 **Theme**:
