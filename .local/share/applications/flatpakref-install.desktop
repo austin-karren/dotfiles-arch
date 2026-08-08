@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Install Flatpak
+Comment=Install a Flatpak from a flathub.org Install link or .flatpakref file
+Exec=ghostty -e /home/austinkarren/.local/bin/flatpakref-install %u
+Icon=flatpak
+Terminal=false
+NoDisplay=true
+MimeType=x-scheme-handler/flatpak+https;application/vnd.flatpak.ref;
+Categories=System;

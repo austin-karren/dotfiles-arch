@@ -1,0 +1,37 @@
+#!/bin/bash
+# Install a Flatpak from a flathub.org "Install" click.
+#
+# Accepts either form the browser hands over:
+#   flatpak+https://dl.flathub.org/repo/appstream/<id>.flatpakref   (scheme handoff)
+#   file:///home/user/Downloads/<id>.flatpakref                     (downloaded file)
+#   /path/to/<id>.flatpakref                                        (plain path)
+
+set -uo pipefail
+
+arg="${1:-}"
+if [[ -z $arg ]]; then
+  echo "usage: flatpakref-install <flatpak+https URL | .flatpakref file>" >&2
+  exit 64
+fi
+
+case "$arg" in
+  flatpak+https://*) target="https://${arg#flatpak+https://}" ;;
+  file://*)          target="$(python3 -c 'import sys,urllib.parse as u; print(u.unquote(u.urlparse(sys.argv[1]).path))' "$arg")" ;;
+  *)                 target="$arg" ;;
+esac
+
+echo "Installing from: $target"
+echo
+
+flatpak install --from "$target"
+status=$?
+
+echo
+if [[ $status -eq 0 ]]; then
+  echo "Done."
+else
+  echo "Install failed (exit $status)."
+fi
+echo "Press Enter to close..."
+read -r
+exit $status

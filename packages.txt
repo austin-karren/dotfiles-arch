@@ -90,6 +90,7 @@ foomatic-db-nonfree
 foomatic-db-nonfree-ppds
 foomatic-db-ppds
 framework-system
+freerdp
 fsarchiver
 fuse2
 fw-fanctrl
@@ -239,7 +240,9 @@ s-nail
 satty
 sddm
 sg3_utils
+shellcheck
 shelly
+shelly-flatpak-backend
 signal-desktop
 slurp
 smartmontools
@@ -257,6 +260,7 @@ swaybg
 swayosd
 sysfsutils
 system-config-printer
+tailscale
 terraform
 tesseract
 tesseract-data-eng
