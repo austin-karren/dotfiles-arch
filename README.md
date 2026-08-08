@@ -237,6 +237,17 @@ are the to-do list.
   then `omarchy pkg add <packages...>`, and Flatpak only for what neither
   covers — note `omarchy pkg install` is a fuzzy-finder TUI that ignores
   arguments, so it is never the scripted form
+- Survive an upstream Waybar change without losing features or gaining
+  regressions. When Omarchy ships a new bar, the wanted outcome is a diff — read
+  what upstream changed, adopt the good parts, keep ours. Half of that already
+  works: `loaf heal` keeps the overwriting file as `.displaced.<epoch>` and
+  restores ours, so both versions survive. Two gaps. First, nothing snapshots
+  `$HOME` first: `/home` is its own btrfs subvolume but snapper has a config for
+  `/` only, so the pre/post snapshots on every pacman transaction do not cover
+  any config. Second, nothing announces that a new upstream version arrived and
+  is worth reading — a `.displaced` file is easy to miss. Note Omarchy has no
+  pre-update hook (only `post-update.d`), so a snapshot step needs either a
+  snapper config for `@home` or a wrapper around `omarchy update`
 - Audit the per-application tweaks and track the ones worth keeping. Slack's
   Electron menu bar is hidden, Helium's profiles were made themable, and Helium
   got the Chrome DRM component — none of them are in the repo today, and
