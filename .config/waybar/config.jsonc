@@ -111,12 +111,23 @@
     "tooltip": false,
     "on-click-right": "omarchy-launch-floating-terminal-with-presentation omarchy-tz-select"
   },
+  // Served from a cache rather than from wttr.in directly, because the stock module
+  // prints an empty string when its fetch fails and Waybar hides a custom module whose
+  // text is empty — so a failed request removed the icon instead of dating it, which is
+  // what happened after a reboot: Waybar starts ~3s before NetworkManager is up. See
+  // ~/.local/bin/weather-icon and ADR-0031.
+  //
+  // The interval polls the cache, not the network: it stays at 60s so the glyph can
+  // follow sunset and mark itself stale promptly, while the fetch behind it runs every
+  // 15 minutes. Signal 12 lets a background refresh push its result to the bar at once
+  // instead of waiting out the next poll.
   "custom/weather": {
-    "exec": "$OMARCHY_PATH/default/waybar/weather.sh",
+    "exec": "weather-icon",
     "return-type": "json",
     "interval": 60,
+    "signal": 12,
     "tooltip": false,
-    "on-click": "notify-send -u low \"$(omarchy-weather-status)\""
+    "on-click": "notify-send -u low \"$(weather-icon --status)\""
   },
   // Wired shows a globe (U+F059F nf-md-web), not the RJ45 port it replaced. The port
   // names the cable; what you actually want to know at a glance is whether this machine
