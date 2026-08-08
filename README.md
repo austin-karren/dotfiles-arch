@@ -92,7 +92,8 @@ it can also override anything the tracked `.bashrc` set.
 |---|---|
 | `.config/hypr/` | Hyprland: bindings, monitors, looknfeel, windows, idle/lock/sunset |
 | `.config/waybar/` | Bar config, styles, and theme override |
-| `.config/walker/` | Launcher |
+| `.config/walker/` | Launcher front-end: window, theme, list widget |
+| `.config/elephant/` | Launcher backend: what appears in the list. `menus/` defines the System Palette; the `*.toml` files are per-provider overrides, each holding only the keys that differ from the default — `elephant generate config` will expand them into full default dumps, which is not what you want |
 | `.config/ghostty/`, `alacritty/`, `foot/` | Terminals. Ghostty sources Omarchy's dynamic theme path, which stays machine-side |
 | `.config/zed/` | Editor + agent settings |
 | `.config/git/config` | Aliases, delta pager, zdiff3, rerere |
