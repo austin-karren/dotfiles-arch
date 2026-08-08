@@ -224,3 +224,21 @@ are the to-do list.
   ever leave them for a human to read
 - Settle wrap versus clamp for the Size ladder (ADR-0022) after using both, and put
   the switch in the Toggle Menu instead of `window-resize --toggle-mode`
+- Put Tailscale in the right-hand group of the bar. `omarchy install tailscale`
+  already exists and installs the service plus an admin-console web app, so the
+  work is the module, not the install. Placement follows ADR-0029 — the question
+  it answers, not where there is room — and it joins the existing box rule for
+  Pitch rather than getting margins of its own
+- Make the Flatpaks reproducible. A fresh clone installs the Ref handler
+  (ADR-0032) but no Flatpaks: `packages/chosen.packages` is pacman-only, so an
+  app like Dawn appears in neither the manifest nor the record. Wants a second
+  manifest and a `loaf` command that installs and diffs it. Install order for
+  anything new is `omarchy install <thing>` when Omarchy ships an installer,
+  then `omarchy pkg add <packages...>`, and Flatpak only for what neither
+  covers — note `omarchy pkg install` is a fuzzy-finder TUI that ignores
+  arguments, so it is never the scripted form
+- Audit the per-application tweaks and track the ones worth keeping. Slack's
+  Electron menu bar is hidden, Helium's profiles were made themable, and Helium
+  got the Chrome DRM component — none of them are in the repo today, and
+  `~/.config/chromium-flags.conf` is untracked but still stock. Expect more of
+  these than the three named
