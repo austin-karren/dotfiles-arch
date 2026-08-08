@@ -175,6 +175,29 @@ function GetEntries()
     Keywords = {"theme", "colours", "appearance"},
     Actions = { activate = "omarchy-menu theme" },
   })
+
+  -- Omarchy's Install / Remove / Update menus, surfaced directly in the palette so they
+  -- are reachable by name instead of by walking the Omarchy Menu tree. Each jumps to the
+  -- same submenu `omarchy-menu` would show. Names and glyphs are Omarchy's, per the rule
+  -- above, and were extracted from omarchy-menu rather than retyped.
+  add({
+    Text = "Install",
+    Icon = "󰉉",
+    Keywords = {"install", "add", "package", "software", "app"},
+    Actions = { activate = "omarchy-menu install" },
+  })
+  add({
+    Text = "Remove",
+    Icon = "󰭌",
+    Keywords = {"remove", "uninstall", "delete", "package"},
+    Actions = { activate = "omarchy-menu remove" },
+  })
+  add({
+    Text = "Update",
+    Icon = "",
+    Keywords = {"update", "upgrade", "omarchy", "system"},
+    Actions = { activate = "omarchy-menu update" },
+  })
   add({
     Text = "Start Screensaver",
     Icon = "󱄄",
