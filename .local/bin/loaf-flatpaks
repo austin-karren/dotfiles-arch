@@ -15,7 +15,7 @@
 set -uo pipefail
 
 LOAF_HOME="${LOAF_HOME:-$HOME}"
-LOAF_ROOT="${LOAF_ROOT:-$LOAF_HOME/shokupan}"
+LOAF_ROOT="${LOAF_ROOT:-$LOAF_HOME/dotfiles-arch}"
 MANIFEST="$LOAF_ROOT/packages/chosen.flatpaks"
 
 quiet=false

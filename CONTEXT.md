@@ -1,4 +1,4 @@
-# Shokupan
+# dotfiles-arch
 
 The configuration of one desktop: CachyOS running Omarchy on Hyprland. This
 glossary exists because the vocabulary here is genuinely ambiguous — Omarchy,

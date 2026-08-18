@@ -22,7 +22,7 @@ set -uo pipefail
 # fixture tree. Every path below derives from it, so nothing reaches the real
 # home directory unless it was asked to.
 LOAF_HOME="${LOAF_HOME:-$HOME}"
-LOAF_ROOT="${LOAF_ROOT:-$LOAF_HOME/shokupan}"
+LOAF_ROOT="${LOAF_ROOT:-$LOAF_HOME/dotfiles-arch}"
 STATE_DIR="${XDG_STATE_HOME:-$LOAF_HOME/.local/state}/loaf"
 # Migrations run as child processes and touch paths in the home directory, so
 # they need the same injectable root — otherwise a test migration would edit the
@@ -115,6 +115,27 @@ if command -v stow &>/dev/null; then
   fi
 else
   say "stow: not installed — skipped"
+fi
+
+# ---------------------------------------------------------
+# 2a. Re-assert the plugins checkout
+# ---------------------------------------------------------
+
+# The plugins live in their own repo since the 2026-08-18 split, so stow no
+# longer installs them; loaf-plugins owns that. --offline keeps heal off the
+# network: an existing checkout is re-linked, a missing one fails loudly rather
+# than cloning behind the user's back.
+if command -v loaf-plugins &>/dev/null; then
+  if $dry_run; then
+    plugins_out=$(loaf-plugins --offline --dry-run 2>&1)
+  else
+    plugins_out=$(loaf-plugins --offline 2>&1)
+  fi
+  if [[ -n $plugins_out ]]; then
+    while IFS= read -r line; do act "$line"; done <<<"$plugins_out"
+  else
+    say "plugins: nothing to do"
+  fi
 fi
 
 # ---------------------------------------------------------

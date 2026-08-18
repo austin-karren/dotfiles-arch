@@ -23,7 +23,11 @@
 set -uo pipefail
 
 LOAF_HOME="${LOAF_HOME:-$HOME}"
-LOAF_ROOT="${LOAF_ROOT:-$LOAF_HOME/shokupan}"
+LOAF_ROOT="${LOAF_ROOT:-$LOAF_HOME/dotfiles-arch}"
+# The forked files live in the plugins repo since the 2026-08-18 split; the
+# board stays here because it is loaf's to run. Paths in the manifest are
+# relative to that checkout, not to this repo.
+PLUGINS_ROOT="${PLUGINS_ROOT:-$LOAF_HOME/.local/share/shokupan}"
 MANIFEST="$LOAF_ROOT/packages/forks"
 
 quiet=false
@@ -50,7 +54,7 @@ out=""
 
 while read -r rice_path upstream_path recorded_sha mode; do
   [[ -n ${recorded_sha:-} ]] || continue
-  if [[ ! -e $LOAF_ROOT/$rice_path ]]; then
+  if [[ ! -e $PLUGINS_ROOT/$rice_path ]]; then
     problems=$((problems + 1))
     out+="✗ $rice_path — rice file missing from the repo"$'\n'
     continue

@@ -13,7 +13,7 @@ set -euo pipefail
 # fixture tree. Every path below derives from it, so nothing reaches the real
 # home directory unless it was asked to.
 LOAF_HOME="${LOAF_HOME:-$HOME}"
-LOAF_ROOT="${LOAF_ROOT:-$LOAF_HOME/shokupan}"
+LOAF_ROOT="${LOAF_ROOT:-$LOAF_HOME/dotfiles-arch}"
 export LOAF_ROOT
 
 summary_of() {

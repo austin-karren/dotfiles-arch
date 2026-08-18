@@ -10,7 +10,7 @@
 #                                         re-verify the coupling still holds.
 #
 # Re-stamp after re-verifying: loaf forks --record
-.config/omarchy/bar/modules/indicators.qml /usr/share/omarchy/shell/plugins/bar/widgets/Indicators.qml f64fc3a122d71e6cc1f9a8b8284416df29cac070306fa6df55e9f1053fe4cf65
+bar/modules/indicators.qml /usr/share/omarchy/shell/plugins/bar/widgets/Indicators.qml f64fc3a122d71e6cc1f9a8b8284416df29cac070306fa6df55e9f1053fe4cf65
 # ADR-0006 addendum: the clock clone (austinkarren.clock, upstream's sanctioned
 # plugin-clone shape). Panel.qml is the only patched file — day/hero clicks run
 # calendar-toggle --date, each divergence marked // SHOKUPAN:. BarWidget.qml is
@@ -18,8 +18,8 @@
 # popup) — re-diff both, never re-clone them, or the dialog behaviour is lost.
 # Model.js is a verbatim copy and manifest.json is the clone tool's own jq
 # rewrite: refresh those two by re-cloning.
-.config/omarchy/plugins/austinkarren.clock/Panel.qml /usr/share/omarchy/shell/plugins/panels/clock/Panel.qml ce59ce0674dbf22c24ff83c6eeeb827f95d922f5cb5863da94f4bab5c4d1430b
-.config/omarchy/plugins/austinkarren.clock/BarWidget.qml /usr/share/omarchy/shell/plugins/panels/clock/BarWidget.qml cfcdaeedc4ae5832b37271a84bb92ee762301022e2443a0f769992fa792acf28
+plugins/austinkarren.clock/Panel.qml /usr/share/omarchy/shell/plugins/panels/clock/Panel.qml ce59ce0674dbf22c24ff83c6eeeb827f95d922f5cb5863da94f4bab5c4d1430b
+plugins/austinkarren.clock/BarWidget.qml /usr/share/omarchy/shell/plugins/panels/clock/BarWidget.qml cfcdaeedc4ae5832b37271a84bb92ee762301022e2443a0f769992fa792acf28
 # ADR-0029 addendum (2026-08-15): the network clone (austinkarren.network,
 # same sanctioned plugin-clone shape as the clock). Model.js is the only
 # patched file — connectionIcon()'s ethernet arm returns the globe "\u{f059f}"
@@ -28,12 +28,12 @@
 # those two by re-cloning, not by re-diffing. This re-lives the wired-globe
 # section that regressed at r1744; the durable end state is still an upstream
 # glyph setting (draft in docs/upstream/).
-.config/omarchy/plugins/austinkarren.network/Model.js /usr/share/omarchy/shell/plugins/panels/network/Model.js 864f658384438e319d6051bf95a18384fee1c6512686dc8cb9df18888c1760a1
+plugins/austinkarren.network/Model.js /usr/share/omarchy/shell/plugins/panels/network/Model.js 864f658384438e319d6051bf95a18384fee1c6512686dc8cb9df18888c1760a1
 # ADR-0029 addendum (2026-08-15): shokupan.omenu is back on the bar (kept
 # identity deviation, user's word). Its BarWidget.qml is our own QML, but the
 # two click actions (the omarchy-shell IPC toggle and xdg-terminal-exec) are
 # copied verbatim from upstream's menu button — if upstream renames the IPC
 # route or the WidgetButton API, the button goes dead. Watch, not fork.
-.config/omarchy/plugins/shokupan-omenu/BarWidget.qml /usr/share/omarchy/shell/plugins/menu/BarWidget.qml ad201156483711ba77ec97303183bc02922248e97ac0c0b8ea30d250e57cd0af watch
+plugins/shokupan-omenu/BarWidget.qml /usr/share/omarchy/shell/plugins/menu/BarWidget.qml ad201156483711ba77ec97303183bc02922248e97ac0c0b8ea30d250e57cd0af watch
 # The r1744 upgrade absorbed the microphone wrapper's fixed-width pin into
 # upstream's own BarIconButton behaviour (deviation deleted, not regressed).

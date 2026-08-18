@@ -17,7 +17,7 @@ set -uo pipefail
 # fixture tree. Every path below derives from it, so nothing reaches the real
 # home directory unless it was asked to.
 LOAF_HOME="${LOAF_HOME:-$HOME}"
-LOAF_ROOT="${LOAF_ROOT:-$LOAF_HOME/shokupan}"
+LOAF_ROOT="${LOAF_ROOT:-$LOAF_HOME/dotfiles-arch}"
 # Sibling loaf-* commands resolve relative to this script, not to a PATH that
 # may not contain ~/.local/bin yet — on a fresh machine the symlinks only land
 # after the first stow pass. Measured in the lab: heal silently skipped debloat.
@@ -427,6 +427,31 @@ done < <(git -C "$LOAF_ROOT" ls-files |
 ((${#missing[@]})) && bad "symlinks" "${#missing[@]} not installed" "${missing[@]}"
 ((${#stale_copies[@]})) && bad "symlinks" "${#stale_copies[@]} theme file(s) not real in-sync copies" "${stale_copies[@]}" \
   "run loaf heal — theme files must be real files or theme-set stages them broken"
+
+# The plugins moved to their own repo at the 2026-08-18 split, so their presence
+# is no longer implied by the symlink census above — nothing in this repo tracks
+# them. Check the checkout exists and that every plugin it ships is linked into
+# the desktop; a half-installed set is the failure mode (one dead widget id in
+# shell.json, silent at load).
+PLUGINS_ROOT="${PLUGINS_ROOT:-$LOAF_HOME/.local/share/shokupan}"
+if [[ ! -d $PLUGINS_ROOT ]]; then
+  bad "plugins" "no checkout at ${PLUGINS_ROOT#"$LOAF_HOME"/}" \
+    "the bar's shokupan.* and austinkarren.* widgets cannot load" \
+    "run: loaf plugins"
+else
+  plugins_missing=()
+  for _d in "$PLUGINS_ROOT"/plugins/*/; do
+    [[ -d $_d ]] || continue
+    [[ -L $LOAF_HOME/.config/omarchy/plugins/$(basename "$_d") ]] ||
+      plugins_missing+=("$(basename "$_d")")
+  done
+  if ((${#plugins_missing[@]})); then
+    bad "plugins" "${#plugins_missing[@]} not linked into the desktop" "${plugins_missing[@]}" \
+      "run: loaf plugins --offline"
+  else
+    ok "plugins" "$(find "$PLUGINS_ROOT/plugins" -maxdepth 1 -mindepth 1 -type d | wc -l) linked from ${PLUGINS_ROOT#"$LOAF_HOME"/}"
+  fi
+fi
 
 # The bar's plugin/settings UI appends widget enables to bar.layout's CENTER —
 # even when the widget already sits elsewhere — and it writes through the rice

@@ -1,0 +1,127 @@
+#!/bin/bash
+
+# loaf:summary=Install the shokupan plugins repo and link it into the desktop
+# loaf:args=[--offline] [--dry-run]
+
+# The rice stopped carrying its own plugins at the 2026-08-18 split. They live
+# in a separate, publishable repo (github.com/austin-karren/shokupan) because a
+# stranger can use them and cannot use this one — and because `omarchy plugin
+# add` is upstream's own consumption path for exactly that shape.
+#
+# What that costs is this script: the machine now has a dependency to fetch and
+# link, where before stow did everything. The layout it installs is identical to
+# what stow produced, so nothing downstream — shell.json ids, absolute paths in
+# bindings, the forks board — had to change.
+#
+#   plugins/*            -> ~/.config/omarchy/plugins/*        symlink
+#   bar/{modules,indicators}/* -> ~/.config/omarchy/bar/...    symlink
+#   bin/*                -> ~/.local/bin/*                     symlink
+#   hooks/theme-set.d/*  -> ~/.config/omarchy/hooks/theme-set.d/*  symlink
+#   themes/*             -> ~/.config/omarchy/themes/*         COPY, not symlink
+#
+# Themes are copied for the reason .stow-local-ignore records: omarchy-theme-set
+# stages a user theme with `cp -r`, which copies a symlink AS a relative symlink
+# and leaves it dangling at the staging path, so the override silently never
+# applies. Real files are what upstream's own theme install produces.
+#
+# --offline re-asserts the links without touching the network, which is what
+# `loaf heal` runs; a missing checkout is then a loud failure rather than a
+# silent clone.
+
+set -uo pipefail
+
+LOAF_HOME="${LOAF_HOME:-$HOME}"
+PLUGINS_REPO="${PLUGINS_REPO:-https://github.com/austin-karren/shokupan.git}"
+PLUGINS_ROOT="${PLUGINS_ROOT:-$LOAF_HOME/.local/share/shokupan}"
+
+offline=false
+dry_run=false
+for arg in "$@"; do
+  case $arg in
+  --offline) offline=true ;;
+  --dry-run) dry_run=true ;;
+  *)
+    echo "usage: loaf plugins [--offline] [--dry-run]" >&2
+    exit 64
+    ;;
+  esac
+done
+
+say() { printf '%s\n' "$1"; }
+
+# --- fetch ------------------------------------------------------------------
+if ! $offline; then
+  if [[ -d $PLUGINS_ROOT/.git ]]; then
+    $dry_run || git -C "$PLUGINS_ROOT" pull --quiet --ff-only || {
+      echo "loaf plugins: pull failed — leaving the checkout alone" >&2
+      exit 1
+    }
+    say "plugins: checkout up to date"
+  else
+    $dry_run || git clone --quiet "$PLUGINS_REPO" "$PLUGINS_ROOT" || {
+      echo "loaf plugins: clone failed" >&2
+      exit 1
+    }
+    say "plugins: cloned $PLUGINS_REPO"
+  fi
+fi
+
+if [[ ! -d $PLUGINS_ROOT ]]; then
+  echo "loaf plugins: no checkout at $PLUGINS_ROOT — run 'loaf plugins' with network" >&2
+  exit 1
+fi
+
+# --- link -------------------------------------------------------------------
+link() {
+  local src=$1 dst=$2
+  [[ -e $src ]] || return 0
+  if [[ -L $dst && $(readlink -f "$dst") == "$(readlink -f "$src")" ]]; then
+    return 0
+  fi
+  if $dry_run; then
+    say "plugins: would link ${dst#"$LOAF_HOME"/}"
+    return 0
+  fi
+  mkdir -p "$(dirname "$dst")"
+  rm -rf "$dst"
+  ln -s "$src" "$dst"
+  say "plugins: linked ${dst#"$LOAF_HOME"/}"
+}
+
+for d in "$PLUGINS_ROOT"/plugins/*/; do
+  [[ -d $d ]] || continue
+  link "${d%/}" "$LOAF_HOME/.config/omarchy/plugins/$(basename "$d")"
+done
+
+for sub in modules indicators; do
+  for f in "$PLUGINS_ROOT"/bar/$sub/*; do
+    [[ -e $f ]] || continue
+    link "$f" "$LOAF_HOME/.config/omarchy/bar/$sub/$(basename "$f")"
+  done
+done
+
+for f in "$PLUGINS_ROOT"/bin/*; do
+  [[ -e $f ]] || continue
+  link "$f" "$LOAF_HOME/.local/bin/$(basename "$f")"
+done
+
+for f in "$PLUGINS_ROOT"/hooks/theme-set.d/*; do
+  [[ -e $f ]] || continue
+  link "$f" "$LOAF_HOME/.config/omarchy/hooks/theme-set.d/$(basename "$f")"
+done
+
+# --- copy themes ------------------------------------------------------------
+while IFS= read -r -d '' src; do
+  rel=${src#"$PLUGINS_ROOT"/themes/}
+  dst="$LOAF_HOME/.config/omarchy/themes/$rel"
+  if [[ -L $dst ]] || ! cmp -s "$src" "$dst" 2>/dev/null; then
+    if $dry_run; then
+      say "plugins: would copy themes/$rel"
+    else
+      mkdir -p "$(dirname "$dst")"
+      rm -f "$dst"
+      cp "$src" "$dst"
+      say "plugins: copied themes/$rel"
+    fi
+  fi
+done < <(find "$PLUGINS_ROOT/themes" -type f -print0 2>/dev/null)
