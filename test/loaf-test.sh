@@ -111,8 +111,17 @@ make_home() {
   {
     mkdir -p "$home/.config/hypr" "$home/.local/state"
 
+  # The plugins checkout, which the rice consumes rather than carries since the
+  # 2026-08-18 split. Doctor asserts every plugin it ships is linked into the
+  # desktop, so a fixture needs both halves or every clean-fixture test reds.
+    local plugins="$home/.local/share/shokupan"
+    mkdir -p "$plugins/plugins/shokupan-fixture" "$home/.config/omarchy/plugins"
+    echo '{"id":"shokupan.fixture"}' >"$plugins/plugins/shokupan-fixture/manifest.json"
+    ln -sfn "$plugins/plugins/shokupan-fixture" \
+      "$home/.config/omarchy/plugins/shokupan-fixture"
+
   # The rice repo
-    local repo="$home/shokupan"
+    local repo="$home/dotfiles-arch"
     mkdir -p "$repo/.config/hypr" "$repo/packages" "$repo/migrations"
     echo "# tracked config" >"$repo/.config/hypr/looknfeel.conf"
     printf 'bat\n' >"$repo/packages/chosen.packages"
@@ -212,7 +221,8 @@ chmod +x "$BUILD/stub/sudo"
 loaf_run() {
   local home=$1 cmd=$2
   shift 2
-  LOAF_HOME="$home" LOAF_ROOT="$home/shokupan" \
+  LOAF_HOME="$home" LOAF_ROOT="$home/dotfiles-arch" \
+    PLUGINS_ROOT="$home/.local/share/shokupan" \
     PACMAN_CONF="$home/etc/pacman.conf" \
     MIRRORLIST="$home/etc/pacman.d/mirrorlist" \
     NM_CONF="$home/etc/NetworkManager.conf" \
@@ -231,7 +241,7 @@ loaf_run() {
 # ---------------------------------------------------------
 
 home=$(make_home)
-(cd "$home/shokupan" && stow --no-folding -t "$home" . 2>/dev/null)
+(cd "$home/dotfiles-arch" && stow --no-folding -t "$home" . 2>/dev/null)
 
 out=$(loaf_run "$home" doctor)
 status=$?
@@ -257,7 +267,7 @@ done
 # A displaced symlink — the failure the whole thing exists for. Note git stays
 # clean throughout, which is why nothing else would catch this.
 home=$(make_home)
-(cd "$home/shokupan" && stow --no-folding -t "$home" . 2>/dev/null)
+(cd "$home/dotfiles-arch" && stow --no-folding -t "$home" . 2>/dev/null)
 rm "$home/.config/hypr/looknfeel.conf"
 echo "upstream default" >"$home/.config/hypr/looknfeel.conf"
 
@@ -289,7 +299,7 @@ assert_not_contains "doctor: does not compare a pin against a missing package" \
 # fixture always has uninstalled symlinks to fail on. The stow is what narrows the
 # assertion down to the check under test.
 home=$(make_home)
-(cd "$home/shokupan" && stow --no-folding -t "$home" . 2>/dev/null)
+(cd "$home/dotfiles-arch" && stow --no-folding -t "$home" . 2>/dev/null)
 out=$(OMARCHY_PATH="$home/omarchy-src" loaf_run "$home" doctor)
 status=$?
 assert_contains "doctor: warns when a dev checkout is live instead of the package" \
@@ -301,11 +311,11 @@ assert_equals "doctor: a dev checkout is a warning, not a failure" "$status" "0"
 # the old `v3.8.4` shape — which is how the previous sort -V logic came to pick the
 # omarchy-v3.8.4-prequattro ROLLBACK tag as the pin.
 home=$(make_home)
-(cd "$home/shokupan" && stow --no-folding -t "$home" . 2>/dev/null) # asserts the exit code
-printf '3.8.4\n' >"$home/shokupan/packages/omarchy.pin"
+(cd "$home/dotfiles-arch" && stow --no-folding -t "$home" . 2>/dev/null) # asserts the exit code
+printf '3.8.4\n' >"$home/dotfiles-arch/packages/omarchy.pin"
 # Committed, not just written: the pin lives in the repo, so leaving it dirty would
 # trip doctor's `git` check and this test would pass on the wrong problem.
-git -C "$home/shokupan" commit -qam 'pin an older Omarchy' 2>/dev/null
+git -C "$home/dotfiles-arch" commit -qam 'pin an older Omarchy' 2>/dev/null
 out=$(loaf_run "$home" doctor)
 status=$?
 assert_contains "doctor: warns when the pin and the installed version differ" \
@@ -316,12 +326,12 @@ assert_equals "doctor: version drift is a warning, not a failure" "$status" "0"
 # way every other manifest in packages/ does.
 home=$(make_home)
 printf '# which Omarchy this was verified against\n\n  %s  \n' "$STUB_OMARCHY_VERSION" \
-  >"$home/shokupan/packages/omarchy.pin"
+  >"$home/dotfiles-arch/packages/omarchy.pin"
 out=$(loaf_run "$home" doctor)
 assert_contains "doctor: reads a commented pin file" "$out" "verified against $STUB_OMARCHY_VERSION"
 
 home=$(make_home)
-rm "$home/shokupan/packages/omarchy.pin"
+rm "$home/dotfiles-arch/packages/omarchy.pin"
 out=$(loaf_run "$home" doctor)
 assert_contains "doctor: warns when nothing records the verified version" \
   "$out" "no packages/omarchy.pin"
@@ -341,7 +351,7 @@ assert_equals "doctor: a backendless NetworkManager is a failure, not a warning"
 # The same stanza is fine when the backend is actually there, so a machine that
 # deliberately kept iwd is not nagged for it.
 home=$(make_home)
-(cd "$home/shokupan" && stow --no-folding -t "$home" . 2>/dev/null) # asserts the exit code
+(cd "$home/dotfiles-arch" && stow --no-folding -t "$home" . 2>/dev/null) # asserts the exit code
 printf '[device]\nwifi.backend=iwd\n' >>"$home/etc/NetworkManager.conf"
 out=$(loaf_run "$home" doctor)
 status=$?
@@ -385,7 +395,7 @@ assert_equals "doctor: changes nothing on disk" "$before" "$after"
 # The critical one. A bug here costs real data, so it is asserted directly:
 # the displaced file must still exist, with its contents, after healing.
 home=$(make_home)
-(cd "$home/shokupan" && stow --no-folding -t "$home" . 2>/dev/null)
+(cd "$home/dotfiles-arch" && stow --no-folding -t "$home" . 2>/dev/null)
 rm "$home/.config/hypr/looknfeel.conf"
 echo "upstream default" >"$home/.config/hypr/looknfeel.conf"
 
@@ -399,7 +409,7 @@ assert_equals "heal: restored symlink points at the repo" \
 
 # Dry run must not touch anything
 home=$(make_home)
-(cd "$home/shokupan" && stow --no-folding -t "$home" . 2>/dev/null)
+(cd "$home/dotfiles-arch" && stow --no-folding -t "$home" . 2>/dev/null)
 rm "$home/.config/hypr/looknfeel.conf"
 echo "upstream default" >"$home/.config/hypr/looknfeel.conf"
 before=$(find "$home" -not -path '*/.git/*' | sort | md5sum)
@@ -410,7 +420,7 @@ assert_contains "heal: --dry-run still reports what it would do" "$out" "would r
 
 # Migrations: applied once, recorded, never re-applied
 home=$(make_home)
-cat >"$home/shokupan/migrations/1000000000.sh" <<'M'
+cat >"$home/dotfiles-arch/migrations/1000000000.sh" <<'M'
 echo "test migration"
 echo ran >>"$LOAF_HOME/migration-ran"
 M
@@ -426,7 +436,7 @@ assert_contains "heal: records the migration in the ledger" \
 
 # A failing migration must not be recorded, so it retries
 home=$(make_home)
-printf 'exit 1\n' >"$home/shokupan/migrations/1000000001.sh"
+printf 'exit 1\n' >"$home/dotfiles-arch/migrations/1000000001.sh"
 out=$(loaf_run "$home" heal)
 status=$?
 assert_contains "heal: reports a failed migration" "$out" "will retry"
@@ -436,7 +446,7 @@ assert_not_contains "heal: does NOT record a failed migration" \
 
 # Idempotence: healing a healthy machine is a no-op
 home=$(make_home)
-(cd "$home/shokupan" && stow --no-folding -t "$home" . 2>/dev/null)
+(cd "$home/dotfiles-arch" && stow --no-folding -t "$home" . 2>/dev/null)
 loaf_run "$home" heal >/dev/null
 before=$(find "$home" -not -path '*/.git/*' -not -name last-heal | sort | md5sum)
 out=$(loaf_run "$home" heal)
@@ -481,7 +491,7 @@ assert_file_exists "debloat: --dry-run touches nothing" "$home/.local/share/appl
 
 # A repo with no manifest has decided nothing
 home=$(make_home)
-rm "$home/shokupan/packages/removed.webapps"
+rm "$home/dotfiles-arch/packages/removed.webapps"
 out=$(loaf_run "$home" debloat)
 status=$?
 assert_equals "debloat: no manifest is a silent no-op" "$out" ""
@@ -489,7 +499,7 @@ assert_equals "debloat: no manifest exits 0" "$status" "0"
 
 # doctor flags a resurrected launcher; heal re-removes it
 home=$(make_home)
-(cd "$home/shokupan" && stow --no-folding -t "$home" . 2>/dev/null)
+(cd "$home/dotfiles-arch" && stow --no-folding -t "$home" . 2>/dev/null)
 mkdir -p "$home/.local/share/applications"
 touch "$home/.local/share/applications/HEY.desktop"
 out=$(loaf_run "$home" doctor)
@@ -511,12 +521,12 @@ fi
 
 # A recorded fork whose upstream is unchanged is healthy.
 home=$(make_home)
-mkdir -p "$home/shokupan/.config/omarchy/plugins"
-echo "fork" >"$home/shokupan/.config/omarchy/plugins/Fork.qml"
+mkdir -p "$home/.local/share/shokupan/plugins"
+echo "fork" >"$home/.local/share/shokupan/plugins/Fork.qml"
 echo "upstream v1" >"$home/upstream.qml"
-printf '.config/omarchy/plugins/Fork.qml %s %s\n' "$home/upstream.qml" \
+printf 'plugins/Fork.qml %s %s\n' "$home/upstream.qml" \
   "$(sha256sum "$home/upstream.qml" | awk '{print $1}')" \
-  >"$home/shokupan/packages/forks"
+  >"$home/dotfiles-arch/packages/forks"
 out=$(loaf_run "$home" forks)
 status=$?
 assert_contains "forks: unchanged upstream is healthy" "$out" "upstream unchanged"
@@ -548,13 +558,13 @@ assert_equals "forks: a missing upstream is a failure" "$status" "1"
 # copies (hosted-widget couplings). Drift is still red, but the message asks
 # for a re-verify of the coupling, not a re-diff of a copy.
 home=$(make_home)
-mkdir -p "$home/shokupan/.config/omarchy/bar/modules"
-echo "hosts upstream" >"$home/shokupan/.config/omarchy/bar/modules/hosted.qml"
+mkdir -p "$home/.local/share/shokupan/bar/modules"
+echo "hosts upstream" >"$home/.local/share/shokupan/bar/modules/hosted.qml"
 echo "upstream v1" >"$home/hosted-upstream.qml"
-printf '.config/omarchy/bar/modules/hosted.qml %s %s watch\n' \
+printf 'bar/modules/hosted.qml %s %s watch\n' \
   "$home/hosted-upstream.qml" \
   "$(sha256sum "$home/hosted-upstream.qml" | awk '{print $1}')" \
-  >"$home/shokupan/packages/forks"
+  >"$home/dotfiles-arch/packages/forks"
 out=$(loaf_run "$home" forks)
 status=$?
 assert_contains "forks: unchanged watched upstream is healthy" "$out" "upstream unchanged"
@@ -571,19 +581,19 @@ assert_equals "forks: watch drift exits non-zero" "$status" "1"
 # --record keeps the watch marker, so the line stays a watch after re-stamping.
 loaf_run "$home" forks --record >/dev/null
 assert_contains "forks: --record preserves the watch marker" \
-  "$(cat "$home/shokupan/packages/forks")" " watch"
+  "$(cat "$home/dotfiles-arch/packages/forks")" " watch"
 out=$(loaf_run "$home" forks)
 assert_contains "forks: a re-stamped watch is healthy again" "$out" "upstream unchanged"
 
 # Absolute upstream paths referenced from the rice's QML must exist
 # (ADR-0042 want 2) — hosted widgets fail silently when a rename lands.
 home=$(make_home)
-(cd "$home/shokupan" && stow --no-folding -t "$home" . 2>/dev/null)
-mkdir -p "$home/shokupan/.config/omarchy/bar/modules"
+(cd "$home/dotfiles-arch" && stow --no-folding -t "$home" . 2>/dev/null)
+mkdir -p "$home/.local/share/shokupan/bar/modules"
 printf 'source: "file:///usr/share/omarchy/shell/definitely-renamed-away.qml"\n' \
-  >"$home/shokupan/.config/omarchy/bar/modules/hosted.qml"
-git -C "$home/shokupan" add -A && git -C "$home/shokupan" commit -qm 'bar module' 2>/dev/null
-(cd "$home/shokupan" && stow --no-folding -t "$home" . 2>/dev/null)
+  >"$home/.local/share/shokupan/bar/modules/hosted.qml"
+git -C "$home/dotfiles-arch" add -A && git -C "$home/dotfiles-arch" commit -qm 'bar module' 2>/dev/null
+(cd "$home/dotfiles-arch" && stow --no-folding -t "$home" . 2>/dev/null)
 out=$(loaf_run "$home" doctor)
 status=$?
 assert_contains "doctor: detects a broken upstream QML reference" \
@@ -598,7 +608,7 @@ assert_equals "doctor: a broken upstream reference is a failure" "$status" "1"
 # for a minute; the banner stayed after the file returned), so doctor asks the
 # compositor rather than the filesystem.
 home=$(make_home)
-(cd "$home/shokupan" && stow --no-folding -t "$home" . 2>/dev/null)
+(cd "$home/dotfiles-arch" && stow --no-folding -t "$home" . 2>/dev/null)
 mkdir -p "$home/hypr-runtime/some-instance-signature"
 out=$(loaf_run "$home" doctor)
 status=$?
@@ -614,7 +624,7 @@ assert_equals "doctor: a wedged compositor is a failure" "$status" "1"
 
 # No runtime dir means no compositor — a TTY or SSH session, not a problem.
 home=$(make_home)
-(cd "$home/shokupan" && stow --no-folding -t "$home" . 2>/dev/null)
+(cd "$home/dotfiles-arch" && stow --no-folding -t "$home" . 2>/dev/null)
 out=$(loaf_run "$home" doctor)
 status=$?
 assert_not_contains "doctor: says nothing about hyprland without a compositor" "$out" "hyprland"
@@ -627,7 +637,7 @@ assert_equals "doctor: no compositor is not a problem" "$status" "0"
 # A foreign symlink at a tracked path: section 1 skips it (it IS a link), stow
 # then refuses the conflict. That used to be reported as a green change.
 home=$(make_home)
-(cd "$home/shokupan" && stow --no-folding -t "$home" . 2>/dev/null)
+(cd "$home/dotfiles-arch" && stow --no-folding -t "$home" . 2>/dev/null)
 rm "$home/.config/hypr/looknfeel.conf"
 ln -s /nonexistent "$home/.config/hypr/looknfeel.conf"
 out=$(loaf_run "$home" heal)
@@ -638,9 +648,9 @@ assert_equals "heal: exits non-zero when stow fails" "$status" "1"
 # Placing a bar module is unfinished until the shell restarts — the shell only
 # registers bar/modules/ files at startup.
 home=$(make_home)
-mkdir -p "$home/shokupan/.config/omarchy/bar/modules"
-echo "// module" >"$home/shokupan/.config/omarchy/bar/modules/new.qml"
-git -C "$home/shokupan" add -A && git -C "$home/shokupan" commit -qm 'bar module' 2>/dev/null
+mkdir -p "$home/.local/share/shokupan/bar/modules"
+echo "// module" >"$home/.local/share/shokupan/bar/modules/new.qml"
+git -C "$home/dotfiles-arch" add -A && git -C "$home/dotfiles-arch" commit -qm 'bar module' 2>/dev/null
 out=$(loaf_run "$home" heal)
 assert_contains "heal: says the shell must restart after placing a bar module" \
   "$out" "bar/modules changed"
@@ -652,8 +662,8 @@ assert_contains "heal: says the shell must restart after placing a bar module" \
 # The version binding is the point: a rice verified against one Omarchy must
 # refuse to install onto another.
 home=$(make_home)
-printf '3.8.4\n' >"$home/shokupan/packages/omarchy.pin"
-git -C "$home/shokupan" commit -qam 'pin an older Omarchy' 2>/dev/null
+printf '3.8.4\n' >"$home/dotfiles-arch/packages/omarchy.pin"
+git -C "$home/dotfiles-arch" commit -qam 'pin an older Omarchy' 2>/dev/null
 out=$(loaf_run "$home" install)
 status=$?
 assert_contains "install: refuses an Omarchy the rice was not verified against" \

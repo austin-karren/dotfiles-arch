@@ -51,7 +51,12 @@ say() { printf '%s\n' "$1"; }
 
 # --- fetch ------------------------------------------------------------------
 if ! $offline; then
-  if [[ -d $PLUGINS_ROOT/.git ]]; then
+  if [[ -d $PLUGINS_ROOT && ! -d $PLUGINS_ROOT/.git ]]; then
+    # A directory that is not a checkout is someone's own copy — a dev tree, a
+    # symlink to one, or a fixture. Link it as it is rather than cloning over
+    # the top of it.
+    say "plugins: $PLUGINS_ROOT is not a git checkout — linking it as-is"
+  elif [[ -d $PLUGINS_ROOT/.git ]]; then
     $dry_run || git -C "$PLUGINS_ROOT" pull --quiet --ff-only || {
       echo "loaf plugins: pull failed — leaving the checkout alone" >&2
       exit 1
@@ -94,7 +99,7 @@ for d in "$PLUGINS_ROOT"/plugins/*/; do
 done
 
 for sub in modules indicators; do
-  for f in "$PLUGINS_ROOT"/bar/$sub/*; do
+  for f in "$PLUGINS_ROOT/bar/$sub"/*; do
     [[ -e $f ]] || continue
     link "$f" "$LOAF_HOME/.config/omarchy/bar/$sub/$(basename "$f")"
   done

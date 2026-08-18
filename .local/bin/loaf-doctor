@@ -35,6 +35,7 @@ STATE_DIR="${XDG_STATE_HOME:-$LOAF_HOME/.local/state}/loaf"
 # than something to discover. $OMARCHY_PATH is still read, because `omarchy dev
 # link` repoints it at a source checkout — a legitimate state, but one where the
 # installed package is not what is live.
+PLUGINS_ROOT="${PLUGINS_ROOT:-$LOAF_HOME/.local/share/shokupan}"
 OMARCHY_PKG_ROOT=/usr/share/omarchy
 OMARCHY_ROOT="${OMARCHY_PATH:-$OMARCHY_PKG_ROOT}"
 
@@ -332,6 +333,11 @@ ref_dirs=()
 for d in .config/omarchy .local/bin .local/share/applications; do
   [[ -d $LOAF_ROOT/$d ]] && ref_dirs+=("$LOAF_ROOT/$d")
 done
+# The plugins carry most of the absolute upstream paths (hosted widgets load
+# upstream QML by full path), and they left this repo at the 2026-08-18 split.
+# Scanning only the rice would leave the check passing over an empty set — the
+# ADR-0028 failure mode where a sentinel outlives its subject.
+[[ -d $PLUGINS_ROOT ]] && ref_dirs+=("$PLUGINS_ROOT")
 if ((${#ref_dirs[@]})); then
   broken_refs=()
   checked_refs=0
@@ -433,7 +439,6 @@ done < <(git -C "$LOAF_ROOT" ls-files |
 # them. Check the checkout exists and that every plugin it ships is linked into
 # the desktop; a half-installed set is the failure mode (one dead widget id in
 # shell.json, silent at load).
-PLUGINS_ROOT="${PLUGINS_ROOT:-$LOAF_HOME/.local/share/shokupan}"
 if [[ ! -d $PLUGINS_ROOT ]]; then
   bad "plugins" "no checkout at ${PLUGINS_ROOT#"$LOAF_HOME"/}" \
     "the bar's shokupan.* and austinkarren.* widgets cannot load" \

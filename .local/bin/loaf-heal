@@ -133,6 +133,9 @@ if command -v loaf-plugins &>/dev/null; then
   fi
   if [[ -n $plugins_out ]]; then
     while IFS= read -r line; do act "$line"; done <<<"$plugins_out"
+    # Bar modules register at shell startup only, and they arrive here now
+    # rather than through stow.
+    [[ $plugins_out == *bar/modules* ]] && bar_touched=true
   else
     say "plugins: nothing to do"
   fi
