@@ -35,7 +35,7 @@
           "id": "austinkarren.clock",
           "format": "dddd h:mm AP",
           "formatAlt": "d MMMM 'W'ww yyyy",
-          "verticalFormat": "h\n—\nmm"
+          "verticalFormat": "h\n\u2014\nmm"
         },
         {
           "id": "omarchy.weather"
@@ -47,6 +47,9 @@
       "right": [
         {
           "id": "omarchy.tray"
+        },
+        {
+          "id": "shokupan.notifications"
         },
         {
           "id": "shokupan.apexshot"
