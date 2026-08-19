@@ -1,6 +1,7 @@
 [tools]
 claude = "latest"
 codex = "latest"
+gh = "latest"
 node = "latest"
 pnpm = "latest"
 stripe-cli = "latest"

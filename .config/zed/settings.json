@@ -84,7 +84,7 @@
   "format_on_save": "on",
 
   /*
-    🗒️ note: shiptrac-platform is ~1.1M files (1.06M of them under node_modules).
+    🗒️ note: a work monorepo here is ~1.1M files (1.06M under node_modules).
     Zed's foreground worktree-snapshot applier (worktree.rs:1363 in 1.14.2) blocked
     the main thread 20-25s applying scans of that tree — the source of the lag and
     Hyprland's "not responding" dialogs (hang traces: ~/.local/share/zed/hang_traces).
