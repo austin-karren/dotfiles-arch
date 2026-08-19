@@ -57,8 +57,12 @@ printf '\033[1mInstalling the rice from %s\033[0m\n' "$LOAF_ROOT"
 
 step "Base (CachyOS)"
 
-[[ -d $LOAF_ROOT/.git ]] || die "$LOAF_ROOT is not a git checkout" \
-  "clone https://github.com/austin-karren/shokupan there first"
+# `.git` is a directory in a normal checkout but a file holding a `gitdir:`
+# pointer in a linked worktree, so ask git rather than testing for a directory
+# — every lane of a worktree-based workflow installs from one.
+git -C "$LOAF_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
+  die "$LOAF_ROOT is not a git checkout" \
+    "clone https://github.com/austin-karren/shokupan there first"
 
 grep -q '^\[cachyos' "$PACMAN_CONF" 2>/dev/null ||
   die "no CachyOS repos in $PACMAN_CONF" \

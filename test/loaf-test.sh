@@ -828,6 +828,34 @@ assert_contains "install: installs missing chosen packages" "$out" "installing 1
 assert_contains "install: hands pacman the missing package" \
   "$(cat "$home/pacman.log" 2>/dev/null)" "pacman -S --needed --noconfirm bat"
 
+# A linked git worktree. `.git` there is a FILE holding a `gitdir:` pointer, not
+# a directory — install used to test for the directory and refuse the tree as no
+# checkout, which locked out exactly the place every lane of a worktree-based
+# workflow installs from. Built for real rather than faked: the install runs
+# against the worktree, so it is the worktree that gets stowed.
+home=$(make_home)
+git -C "$home/shokupan" worktree add -q -b lane "$home/lane" >/dev/null 2>&1
+assert_file_exists "install: the worktree fixture has a .git file, not a directory" \
+  "$home/lane/.git"
+out=$(LOAF_ROOT="$home/lane" loaf_run "$home" install)
+status=$?
+# Matched against the worktree path, since the plugins step prints the same
+# phrase about its own (deliberately unversioned) fixture directory.
+assert_not_contains "install: accepts a linked worktree as a checkout" \
+  "$out" "$home/lane is not a git checkout"
+assert_equals "install: exits 0 when installing from a linked worktree" "$status" "0"
+assert_symlink "install: stowed the rice from the worktree" \
+  "$home/.config/hypr/looknfeel.conf"
+
+# The other half: a directory that is no checkout at all is still refused.
+home=$(make_home)
+rm -rf "$home/shokupan/.git"
+out=$(loaf_run "$home" install)
+status=$?
+assert_contains "install: still refuses a directory that is not a checkout" \
+  "$out" "is not a git checkout"
+assert_equals "install: a non-checkout is a hard stop" "$status" "1"
+
 # No CachyOS base, no install.
 home=$(make_home)
 printf '[core]\nInclude = /etc/pacman.d/mirrorlist\n' >"$home/etc/pacman.conf"
