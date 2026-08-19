@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # loaf:summary=Install the shokupan plugins repo and link it into the desktop
-# loaf:args=[--offline] [--dry-run]
+# loaf:args=[--offline] [--dry-run] [--index]
 
 # The rice stopped carrying its own plugins at the 2026-08-18 split. They live
 # in a separate, publishable repo (github.com/austin-karren/shokupan) because a
@@ -27,27 +27,95 @@
 # --offline re-asserts the links without touching the network, which is what
 # `loaf heal` runs; a missing checkout is then a loud failure rather than a
 # silent clone.
+#
+# --index is the other direction, and does not install anything. packages/plugins
+# records the seven standalone `omarchy-*` repos each plugin is published from
+# (ADR-0044 rule 3/4) — the public `omarchy plugin add` path, which is NOT how
+# this machine runs them. It resolves each recorded id against the checkout and
+# reports the publish URL, so a plugin that was renamed, dropped, or never split
+# out is visible instead of being a stale line nobody reads. Read-only, like
+# `loaf packages`: the manifest is the decision and the checkout is the fact.
 
 set -uo pipefail
 
 LOAF_HOME="${LOAF_HOME:-$HOME}"
+LOAF_ROOT="${LOAF_ROOT:-$LOAF_HOME/shokupan}"
+MANIFEST="$LOAF_ROOT/packages/plugins"
 PLUGINS_REPO="${PLUGINS_REPO:-https://github.com/austin-karren/shokupan-plugins.git}"
 PLUGINS_ROOT="${PLUGINS_ROOT:-$LOAF_HOME/.local/share/shokupan-plugins}"
 
 offline=false
 dry_run=false
+index=false
 for arg in "$@"; do
   case $arg in
   --offline) offline=true ;;
   --dry-run) dry_run=true ;;
+  --index) index=true ;;
   *)
-    echo "usage: loaf plugins [--offline] [--dry-run]" >&2
+    echo "usage: loaf plugins [--offline] [--dry-run] [--index]" >&2
     exit 64
     ;;
   esac
 done
 
 say() { printf '%s\n' "$1"; }
+
+# --- index ------------------------------------------------------------------
+# The recorded id is the plugin id from manifest.json, not the directory it sits
+# in: the repos are named `omarchy-<function>` for the plugin directory's own
+# convention while the ids stay `shokupan.*` / `austinkarren.*` because renaming
+# those breaks shell.json's bar.layout and Omarchy's IPC routing. So resolution
+# reads each manifest.json rather than guessing a path from the id.
+if $index; then
+  if [[ ! -f $MANIFEST ]]; then
+    echo "loaf plugins: no index at $MANIFEST" >&2
+    exit 1
+  fi
+
+  # id -> directory, built once from the checkout.
+  declare -A dir_of=()
+  for d in "$PLUGINS_ROOT"/plugins/*/; do
+    [[ -f ${d}manifest.json ]] || continue
+    id=$(sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "${d}manifest.json" | head -1)
+    [[ -n $id ]] && dir_of[$id]=${d%/}
+  done
+
+  missing=()
+  total=0
+  while read -r id url; do
+    [[ -n ${url:-} ]] || continue
+    total=$((total + 1))
+    if [[ -n ${dir_of[$id]:-} ]]; then
+      printf '\033[32m✓\033[0m %-24s %s\n' "$id" "$url"
+    else
+      missing+=("$id")
+      printf '\033[31m✗\033[0m %-24s %s\n' "$id" "$url"
+      printf '    recorded in the index but no plugin with that id in the checkout\n'
+    fi
+  done < <(sed -e 's/#.*//' -e '/^[[:space:]]*$/d' "$MANIFEST")
+
+  # The other direction is a failure too, not advisory as in `loaf packages`:
+  # an unpublished plugin is one a stranger following the README cannot install,
+  # which is the whole claim the index makes.
+  unrecorded=()
+  for id in "${!dir_of[@]}"; do
+    grep -qE "^[[:space:]]*${id//./\\.}[[:space:]]" "$MANIFEST" || unrecorded+=("$id")
+  done
+
+  if ((${#unrecorded[@]})); then
+    printf '\n\033[31m✗\033[0m %d plugin(s) in the checkout with no published repo recorded:\n' \
+      "${#unrecorded[@]}"
+    printf '    %s\n' "${unrecorded[@]}"
+    printf '    split it out and add the line, or the index understates what ships\n'
+  fi
+
+  if ((${#missing[@]} == 0 && ${#unrecorded[@]} == 0)); then
+    printf '\n\033[32m✓\033[0m all %d published plugin(s) resolve to the checkout\n' "$total"
+    exit 0
+  fi
+  exit 1
+fi
 
 # --- fetch ------------------------------------------------------------------
 if ! $offline; then

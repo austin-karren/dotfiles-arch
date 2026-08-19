@@ -435,10 +435,9 @@ done < <(git -C "$LOAF_ROOT" ls-files |
   "run loaf heal — theme files must be real files or theme-set stages them broken"
 
 # The plugins moved to their own repo at the 2026-08-18 split, so their presence
-# is no longer implied by the symlink census above — nothing in this repo tracks
-# them. Check the checkout exists and that every plugin it ships is linked into
-# the desktop; a half-installed set is the failure mode (one dead widget id in
-# shell.json, silent at load).
+# is no longer implied by the symlink census above. Check the checkout exists and
+# that every plugin it ships is linked into the desktop; a half-installed set is
+# the failure mode (one dead widget id in shell.json, silent at load).
 if [[ ! -d $PLUGINS_ROOT ]]; then
   bad "plugins" "no checkout at ${PLUGINS_ROOT#"$LOAF_HOME"/}" \
     "the bar's shokupan.* and austinkarren.* widgets cannot load" \
@@ -455,6 +454,21 @@ else
       "run: loaf plugins --offline"
   else
     ok "plugins" "$(find "$PLUGINS_ROOT/plugins" -maxdepth 1 -mindepth 1 -type d | wc -l) linked from ${PLUGINS_ROOT#"$LOAF_HOME"/}"
+  fi
+fi
+
+# packages/plugins is what DOES track them: the standalone repo each plugin is
+# published from, which is how a stranger installs them and not how this machine
+# runs them. Nothing about the desktop breaks when it drifts — the failure is
+# that the published edge serves a plugin this repo no longer ships, or omits one
+# it does. loaf-plugins --index owns the how. Guarded on the index existing, the
+# same as every other manifest check here.
+if command -v loaf-plugins &>/dev/null && [[ -f $LOAF_ROOT/packages/plugins ]]; then
+  if loaf-plugins --index &>/dev/null; then
+    ok "plugin index" "every published repo in packages/plugins resolves to a shipped plugin"
+  else
+    bad "plugin index" "packages/plugins and the checkout disagree" \
+      "run 'loaf plugins --index' for which"
   fi
 fi
 

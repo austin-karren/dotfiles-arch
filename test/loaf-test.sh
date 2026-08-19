@@ -129,6 +129,12 @@ make_home() {
     # which a fresh fixture home already is — so listing one here exercises
     # doctor's debloat check on every clean fixture.
     printf 'HEY\n' >"$repo/packages/removed.webapps"
+    # The plugin index (packages/plugins) records the standalone repo each
+    # plugin is published from. The healthy state is it agreeing with the
+    # checkout built above, so listing the one fixture plugin here exercises
+    # doctor's index check on every clean fixture.
+    printf 'shokupan.fixture https://github.com/austin-karren/omarchy-fixture.git\n' \
+      >"$repo/packages/plugins"
     # Must match what the stubbed pacman reports for `pacman -Q omarchy`, or every
     # fixture warns about version drift.
     printf '%s\n' "$STUB_OMARCHY_VERSION" >"$repo/packages/omarchy.pin"
@@ -599,6 +605,106 @@ status=$?
 assert_contains "doctor: detects a broken upstream QML reference" \
   "$out" "referenced upstream path(s) missing"
 assert_equals "doctor: a broken upstream reference is a failure" "$status" "1"
+
+# ---------------------------------------------------------
+# plugin index
+# ---------------------------------------------------------
+
+# The index resolves a recorded id to the plugin in the checkout that declares
+# it. Resolution goes through manifest.json on purpose: the repo is named
+# `omarchy-<function>` while the id stays `shokupan.*`, so the directory name is
+# NOT derivable from the id and a path guess would pass for the wrong reason.
+home=$(make_home)
+out=$(loaf_run "$home" plugins --index)
+status=$?
+assert_contains "index: resolves a recorded id to its plugin" "$out" "shokupan.fixture"
+assert_contains "index: reports the publish URL" \
+  "$out" "https://github.com/austin-karren/omarchy-fixture.git"
+assert_contains "index: a resolving index is healthy" "$out" "resolve to the checkout"
+assert_equals "index: healthy exits 0" "$status" "0"
+
+# --index must not install anything — it is the read-only direction, and doctor
+# calls it. A run against a checkout with nothing linked leaves it unlinked.
+home=$(make_home)
+rm -rf "$home/.config/omarchy/plugins/shokupan-fixture"
+loaf_run "$home" plugins --index >/dev/null
+assert_equals "index: does not link anything" \
+  "$(ls "$home/.config/omarchy/plugins" 2>/dev/null)" ""
+
+# A line for a plugin the checkout no longer ships: the published edge would
+# serve a plugin this repo dropped.
+home=$(make_home)
+printf 'shokupan.fixture https://github.com/austin-karren/omarchy-fixture.git\nshokupan.gone https://github.com/austin-karren/omarchy-gone.git\n' \
+  >"$home/shokupan/packages/plugins"
+out=$(loaf_run "$home" plugins --index)
+status=$?
+assert_contains "index: detects a recorded id with no plugin" "$out" "shokupan.gone"
+assert_contains "index: says why the recorded id failed" \
+  "$out" "no plugin with that id in the checkout"
+assert_equals "index: an unresolved id is a failure" "$status" "1"
+
+out=$(loaf_run "$home" doctor)
+status=$?
+assert_contains "doctor: surfaces index drift" "$out" "packages/plugins and the checkout disagree"
+assert_equals "doctor: index drift is a failure" "$status" "1"
+
+# The other direction: a plugin that ships but was never split out and recorded.
+# Unlike `loaf packages`, this is red rather than advisory — an unrecorded
+# plugin is one a stranger following the README cannot install.
+home=$(make_home)
+mkdir -p "$home/.local/share/shokupan-plugins/plugins/shokupan-unpublished"
+echo '{"id":"shokupan.unpublished"}' \
+  >"$home/.local/share/shokupan-plugins/plugins/shokupan-unpublished/manifest.json"
+ln -sfn "$home/.local/share/shokupan-plugins/plugins/shokupan-unpublished" \
+  "$home/.config/omarchy/plugins/shokupan-unpublished"
+out=$(loaf_run "$home" plugins --index)
+status=$?
+assert_contains "index: detects a shipped plugin with no published repo" \
+  "$out" "shokupan.unpublished"
+assert_contains "index: says what to do about it" "$out" "split it out and add the line"
+assert_equals "index: an unrecorded plugin is a failure" "$status" "1"
+
+# An id is matched as a whole field, not as a substring — `shokupan.capture`
+# must not satisfy the record for a hypothetical `shokupan.capt`.
+home=$(make_home)
+printf 'shokupan.fixtures https://github.com/austin-karren/omarchy-fixtures.git\n' \
+  >"$home/shokupan/packages/plugins"
+out=$(loaf_run "$home" plugins --index)
+assert_contains "index: a near-miss id does not resolve" \
+  "$out" "no plugin with that id in the checkout"
+assert_contains "index: nor does the near-miss record cover the real plugin" \
+  "$out" "with no published repo recorded"
+
+# Comments and blank lines are stripped the same way every other manifest here
+# strips them.
+home=$(make_home)
+printf '# a comment\n\n   \nshokupan.fixture https://github.com/austin-karren/omarchy-fixture.git  # trailing\n' \
+  >"$home/shokupan/packages/plugins"
+out=$(loaf_run "$home" plugins --index)
+status=$?
+assert_contains "index: ignores comments and blank lines" "$out" "all 1 published plugin"
+assert_equals "index: a commented manifest still exits 0" "$status" "0"
+
+# No index is a hard failure for --index specifically: it was asked for the
+# index. Doctor's own check is guarded on the file instead, so a repo without
+# one simply does not make the claim.
+home=$(make_home)
+rm -f "$home/shokupan/packages/plugins"
+out=$(loaf_run "$home" plugins --index)
+status=$?
+assert_contains "index: reports a missing index" "$out" "no index at"
+assert_equals "index: a missing index exits non-zero" "$status" "1"
+
+out=$(loaf_run "$home" doctor)
+assert_not_contains "doctor: silent about the index when there is none" \
+  "$out" "plugin index"
+
+# The index is repo furniture, not config: it must never be stowed into the
+# home directory. packages/ is already repo-only, so this just pins it.
+home=$(make_home)
+(cd "$home/shokupan" && stow --no-folding -t "$home" . 2>/dev/null)
+assert_equals "index: the manifest is not stowed into the home" \
+  "$([[ -e $home/packages/plugins ]] && echo present || echo absent)" "absent"
 
 # ---------------------------------------------------------
 # hyprland emergency mode
