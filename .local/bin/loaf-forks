@@ -23,11 +23,11 @@
 set -uo pipefail
 
 LOAF_HOME="${LOAF_HOME:-$HOME}"
-LOAF_ROOT="${LOAF_ROOT:-$LOAF_HOME/dotfiles-arch}"
+LOAF_ROOT="${LOAF_ROOT:-$LOAF_HOME/shokupan}"
 # The forked files live in the plugins repo since the 2026-08-18 split; the
 # board stays here because it is loaf's to run. Paths in the manifest are
 # relative to that checkout, not to this repo.
-PLUGINS_ROOT="${PLUGINS_ROOT:-$LOAF_HOME/.local/share/shokupan}"
+PLUGINS_ROOT="${PLUGINS_ROOT:-$LOAF_HOME/.local/share/shokupan-plugins}"
 MANIFEST="$LOAF_ROOT/packages/forks"
 
 quiet=false

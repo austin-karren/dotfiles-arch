@@ -31,8 +31,8 @@
 set -uo pipefail
 
 LOAF_HOME="${LOAF_HOME:-$HOME}"
-PLUGINS_REPO="${PLUGINS_REPO:-https://github.com/austin-karren/shokupan.git}"
-PLUGINS_ROOT="${PLUGINS_ROOT:-$LOAF_HOME/.local/share/shokupan}"
+PLUGINS_REPO="${PLUGINS_REPO:-https://github.com/austin-karren/shokupan-plugins.git}"
+PLUGINS_ROOT="${PLUGINS_ROOT:-$LOAF_HOME/.local/share/shokupan-plugins}"
 
 offline=false
 dry_run=false

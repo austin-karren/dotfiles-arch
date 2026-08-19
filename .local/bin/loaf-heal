@@ -22,7 +22,7 @@ set -uo pipefail
 # fixture tree. Every path below derives from it, so nothing reaches the real
 # home directory unless it was asked to.
 LOAF_HOME="${LOAF_HOME:-$HOME}"
-LOAF_ROOT="${LOAF_ROOT:-$LOAF_HOME/dotfiles-arch}"
+LOAF_ROOT="${LOAF_ROOT:-$LOAF_HOME/shokupan}"
 STATE_DIR="${XDG_STATE_HOME:-$LOAF_HOME/.local/state}/loaf"
 # Migrations run as child processes and touch paths in the home directory, so
 # they need the same injectable root — otherwise a test migration would edit the

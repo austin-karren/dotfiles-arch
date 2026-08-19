@@ -1,17 +1,16 @@
-# dotfiles-arch
+# Shokupan
 
 My rice: one CachyOS machine running [Omarchy](https://omarchy.org) on Hyprland,
 managed with [GNU Stow](https://www.gnu.org/software/stow/) and maintained by a
 small CLI called `loaf`.
 
-Split three ways on 2026-08-18. The publishable halves left: the Quickshell
-plugins and Tokyo Night bar override live in
-[shokupan](https://github.com/austin-karren/shokupan), and the CachyOS layer
-contract in
+Split three ways on 2026-08-18, renamed 2026-08-19 so the names match the
+glossary again: this repo is **Shokupan**, the rice, and the only one `loaf`
+manages. It consumes two dependencies rather than carrying them — the
+Quickshell plugins and Tokyo Night bar override in
+[shokupan-plugins](https://github.com/austin-karren/shokupan-plugins) (via
+`loaf plugins`), and the CachyOS layer contract in
 [omarchy-desktop-on-cachyos](https://github.com/austin-karren/omarchy-desktop-on-cachyos).
-This repo is the personal remainder, and the only one `loaf` manages; it
-consumes the other two (`loaf plugins`, and the install guide) rather than
-carrying them.
 
 Named for 食パン, Japanese milk bread. A rice can be named anything — "rice" is
 just the term for a customized desktop, so the bread is a joke rather than a

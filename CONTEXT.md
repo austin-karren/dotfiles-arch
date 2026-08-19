@@ -1,4 +1,4 @@
-# dotfiles-arch
+# Shokupan
 
 The configuration of one desktop: CachyOS running Omarchy on Hyprland. This
 glossary exists because the vocabulary here is genuinely ambiguous — Omarchy,
@@ -11,6 +11,19 @@ to mean different things, and three of the menus are one keystroke apart.
 The proper name of this rice — this specific set of deviations, this repo. A
 rice can be named anything; 食パン is Japanese milk bread, which has nothing to
 do with the generic term below beyond the joke.
+
+Briefly untrue: the 2026-08-18 split gave the name to the plugins repo and
+called this one `dotfiles-arch`, which made this entry — and `loaf`, defined
+below as the CLI that maintains Shokupan — describe nothing that existed. The
+2026-08-19 rename put it back.
+
+**Shokupan Plugins**:
+The publishable half, extracted 2026-08-18 to
+`github.com/austin-karren/shokupan-plugins` and consumed here by `loaf
+plugins`: the Quickshell plugins, the bar modules they need, the four scripts
+they shell out to, and the Tokyo Night bar override. A separate repo because
+any Omarchy user can install it and nobody else can use the rest of this one.
+_Avoid_: shokupan (that is the rice), the plugins repo (say the name)
 _Avoid_: the rice (ambiguous once there are others), dotfiles, shokupan-arch
 
 **Loaf**:

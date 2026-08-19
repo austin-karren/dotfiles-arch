@@ -24,7 +24,7 @@ set -uo pipefail
 # fixture tree. Every path below derives from it, so nothing reaches the real
 # home directory unless it was asked to.
 LOAF_HOME="${LOAF_HOME:-$HOME}"
-LOAF_ROOT="${LOAF_ROOT:-$LOAF_HOME/dotfiles-arch}"
+LOAF_ROOT="${LOAF_ROOT:-$LOAF_HOME/shokupan}"
 MANIFEST="$LOAF_ROOT/packages/wallpapers"
 
 # Injectable for the same reason doctor's /etc paths are: so a future test can assert
