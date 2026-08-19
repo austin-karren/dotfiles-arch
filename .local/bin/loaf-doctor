@@ -389,7 +389,10 @@ fi
 
 layer "Rice ($LOAF_ROOT)"
 
-if [[ ! -d $LOAF_ROOT/.git ]]; then
+# `.git` is a directory in a normal checkout but a file holding a `gitdir:`
+# pointer in a linked worktree, so ask git rather than testing for a directory
+# — every lane of a worktree-based workflow verifies itself through this check.
+if ! git -C "$LOAF_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   bad "repo" "$LOAF_ROOT is not a git checkout"
   exit 1
 fi

@@ -227,7 +227,10 @@ chmod +x "$BUILD/stub/sudo"
 loaf_run() {
   local home=$1 cmd=$2
   shift 2
-  LOAF_HOME="$home" LOAF_ROOT="$home/shokupan" \
+  # $LOAF_ROOT defaults to the fixture's rice repo, but a caller may point it
+  # elsewhere in the fixture home — the worktree tests run doctor against a
+  # linked worktree of that repo rather than the repo itself.
+  LOAF_HOME="$home" LOAF_ROOT="${LOAF_ROOT:-$home/shokupan}" \
     PLUGINS_ROOT="$home/.local/share/shokupan-plugins" \
     PACMAN_CONF="$home/etc/pacman.conf" \
     MIRRORLIST="$home/etc/pacman.d/mirrorlist" \
@@ -287,6 +290,33 @@ home=$(make_home)
 touch "$home/CONTEXT.md"
 out=$(loaf_run "$home" doctor)
 assert_contains "doctor: detects a leaked repo-only path" "$out" "repo-only path"
+
+# A linked git worktree. `.git` there is a FILE holding a `gitdir:` pointer, not
+# a directory — doctor used to test for the directory and report the tree as not
+# a checkout, which made it useless in exactly the place every lane of a
+# worktree-based workflow runs. Built for real rather than faked: the worktree is
+# what stow installs from, so the whole run is against it.
+home=$(make_home)
+git -C "$home/shokupan" worktree add -q -b lane "$home/lane" >/dev/null 2>&1
+(cd "$home/lane" && stow --no-folding -t "$home" . 2>/dev/null)
+assert_file_exists "doctor: the worktree fixture has a .git file, not a directory" \
+  "$home/lane/.git"
+out=$(LOAF_ROOT="$home/lane" loaf_run "$home" doctor)
+status=$?
+assert_not_contains "doctor: accepts a linked worktree as a checkout" \
+  "$out" "is not a git checkout"
+assert_contains "doctor: a linked worktree reports no problems" "$out" "No problems"
+assert_equals "doctor: exits 0 in a linked worktree" "$status" "0"
+
+# The other half: the normal-checkout case still passes, and a directory that is
+# no checkout at all is still caught.
+home=$(make_home)
+rm -rf "$home/shokupan/.git"
+out=$(loaf_run "$home" doctor)
+status=$?
+assert_contains "doctor: still rejects a directory that is not a checkout" \
+  "$out" "is not a git checkout"
+assert_equals "doctor: exits non-zero when the rice is not a checkout" "$status" "1"
 
 # Omarchy is packages now (ADR-0035), so "the desktop layer is gone" means the
 # package is gone rather than a checkout being absent.
