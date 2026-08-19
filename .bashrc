@@ -64,3 +64,5 @@ esac
 # Anything carrying a name, email, account or secret lives here, untracked.
 # Sourced last so it can override anything above. Missing file is fine.
 [[ -f ~/.bashrc.local ]] && source ~/.bashrc.local
+
+. "$HOME/.local/share/../bin/env"

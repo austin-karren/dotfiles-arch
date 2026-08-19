@@ -169,6 +169,35 @@ if command -v flatpak &>/dev/null && [[ -f $LOAF_ROOT/packages/chosen.flatpaks ]
 fi
 
 # ---------------------------------------------------------
+# 4a. Keyboard flashing access
+# ---------------------------------------------------------
+
+step "Keyboard"
+
+# The QMK CLI can talk to a board over raw HID as any user, but putting it into
+# its bootloader to flash needs a udev rule — without one the device appears
+# root-only and `qmk flash` fails with a permissions error that reads like a
+# missing device. Arch's qmk package does not ship the rule, so the rice
+# carries it (packages/qmk-udev.rules, straight from QMK upstream).
+#
+# Only ever written when absent: a rule installed by a future qmk package, or
+# hand-tuned here, is left alone.
+qmk_rules=/etc/udev/rules.d/50-qmk.rules
+if [[ -f $LOAF_ROOT/packages/qmk-udev.rules ]]; then
+  if [[ -f $qmk_rules ]]; then
+    say "qmk udev rule already present"
+  else
+    say "installing $qmk_rules"
+    if $SUDO install -m 644 "$LOAF_ROOT/packages/qmk-udev.rules" "$qmk_rules"; then
+      $SUDO udevadm control --reload-rules
+      $SUDO udevadm trigger
+    else
+      say "could not install the qmk udev rule — flashing will need sudo"
+    fi
+  fi
+fi
+
+# ---------------------------------------------------------
 # 4b. The plugins repo
 # ---------------------------------------------------------
 
