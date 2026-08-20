@@ -26,18 +26,29 @@
 # functions, completions and key bindings in that rc have no business running
 # in a non-interactive shell.
 
-# /etc/omarchy.conf is written by omarchy-dev-link. When absent, force the
-# package default instead of preserving a stale inherited dev-link value before
-# we decide which rc file to source.
+# Upstream's own single source of truth for OMARCHY_PATH + PATH, sourced by
+# /etc/profile.d/omarchy.sh, /etc/skel/.bashrc, /usr/share/uwsm/env.d/10-omarchy
+# and default/bash/envs. It carries the /etc/omarchy.conf dev-link staleness
+# handling this file used to hand-roll — /etc/omarchy.conf is written by
+# omarchy-dev-link and reset by omarchy-dev-unlink, and when absent the packaged
+# default is forced rather than a stale inherited value preserved — for the same
+# reason and with the same result. By the stock-first rule the hand-rolled block
+# stopped earning its keep once upstream absorbed it.
 #
-# Upstream now does exactly this in default/bash/env-bootstrap ("single source
-# of truth for OMARCHY_PATH + PATH"), and adopting that file collapses this
-# block to one line. That swap changes remote shell behaviour on a live
-# machine, so it is a separate, independently revertable change — this file
-# carries the existing logic across unchanged.
-if [[ -f /etc/omarchy.conf ]]; then
-  source /etc/omarchy.conf
-  export OMARCHY_PATH="${OMARCHY_PATH:-/usr/share/omarchy}"
-else
-  export OMARCHY_PATH=/usr/share/omarchy
-fi
+# It also does PATH work the old block did not: the dev-link `$OMARCHY_PATH/bin`
+# prepend (production installs skip it — the binaries are already /usr/bin/omarchy-*),
+# and an APPEND of ~/.local/share/mise/shims and ~/.local/bin so system binaries
+# keep precedence. Both appends land behind /usr/bin, and behind whatever crumb's
+# own env.d/10-pnpm.sh and env.d/20-local-bin.sh prepend after this file runs.
+# On a machine carrying Omarchy's PAM PATH line (install/config/ssh-command-path.sh)
+# the two appends are already satisfied and PATH comes out byte-identical.
+#
+# Guard shape copied from upstream's own /etc/skel/.bashrc. The trailing `:` is
+# ours: this is the last line of a drop-in that crumb's tier-1 loop sources, and
+# a false guard on the last line would hand $? = 1 to whatever ran next on a
+# machine without Omarchy — the same trap that keeps 50-omarchy-rc.sh post-guard.
+#
+# Recorded as a `watch` in packages/forks against THIS file: nothing is copied,
+# but the path and the variables it establishes are depended on whole.
+[[ -r /usr/share/omarchy/default/bash/env-bootstrap ]] && source /usr/share/omarchy/default/bash/env-bootstrap
+:

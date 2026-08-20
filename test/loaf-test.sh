@@ -1091,11 +1091,20 @@ assert_contains "seam: the rc drop-in is a recorded watch" \
   "/usr/share/omarchy/default/bash/rc"
 assert_contains "seam: recorded as a watch, not a fork" \
   "$(grep "^$seam_rc " "$ROOT/packages/forks")" " watch"
-# And not to the env tier, which reads machine state rather than a packaged
-# upstream file. A watch on the wrong half would send a re-verification at the
-# file that has nothing to re-verify.
-assert_equals "seam: the env tier carries no watch of its own" \
-  "$(grep -c "^$seam_env " "$ROOT/packages/forks")" "0"
+# The env tier carries a watch of its own now. It used to hand-roll the
+# OMARCHY_PATH block against /etc/omarchy.conf — machine state, not a packaged
+# upstream file, so there was nothing to watch and this asserted zero. It now
+# sources upstream's default/bash/env-bootstrap, which is a packaged file whose
+# drift can silently reorder PATH in every non-interactive shell. Exactly one
+# watch, and against env-bootstrap rather than rc: a watch pointing at the wrong
+# upstream file sends the re-verification to the wrong place.
+assert_contains "seam: the env drop-in is a recorded watch" \
+  "$(grep "^$seam_env " "$ROOT/packages/forks")" \
+  "/usr/share/omarchy/default/bash/env-bootstrap"
+assert_contains "seam: the env watch is a watch, not a fork" \
+  "$(grep "^$seam_env " "$ROOT/packages/forks")" " watch"
+assert_equals "seam: the env tier records exactly one watch" \
+  "$(grep -c "^$seam_env " "$ROOT/packages/forks")" "1"
 
 # Both drop-ins have to reach $HOME, so neither may be caught by the repo-only
 # ignore list. Stowed from the real repo into a throwaway home rather than
@@ -1109,15 +1118,32 @@ assert_symlink "seam: .config/bash reaches \$HOME" "$home/$seam_rc"
 # and /etc/omarchy.conf rewritten to fixture paths, so the runs answer to the
 # fixture rather than to whether the machine running the suite has Omarchy
 # installed or is dev-linked.
+#
+# env-bootstrap is copied in for real rather than stubbed, path-rewritten the
+# same way. It is upstream's file, not ours, but every assertion below is about
+# what the env tier actually puts in the environment — OMARCHY_PATH, the
+# dev-link prepend, the appended user paths — and a stub would only re-assert
+# whatever the stub was written to do. The copy is what makes those assertions
+# mean something; the fixture rewrite is what keeps them from answering to how
+# the machine running the suite happens to be dev-linked. Its absence is a
+# scenario, tested by deleting the copy.
+seam_bootstrap=usr/share/omarchy/default/bash/env-bootstrap
+
+assert_file_exists "seam: upstream ships the watched env-bootstrap" \
+  "/$seam_bootstrap"
+
 seam_fixture() {
   local home=$1 src dst
-  mkdir -p "$home/usr/share/omarchy"
+  mkdir -p "$home/usr/share/omarchy/default/bash" "$home/etc"
   for src in "$seam_env:env.sh" "$seam_rc:rc.sh"; do
     dst=${src#*:}
     sed -e "s|/usr/share/omarchy|$home/usr/share/omarchy|g" \
       -e "s|/etc/omarchy.conf|$home/etc/omarchy.conf|g" \
       "$ROOT/${src%%:*}" >"$home/$dst"
   done
+  sed -e "s|/usr/share/omarchy|$home/usr/share/omarchy|g" \
+    -e "s|/etc/omarchy.conf|$home/etc/omarchy.conf|g" \
+    "/$seam_bootstrap" >"$home/$seam_bootstrap"
 }
 
 # The env tier's whole job: OMARCHY_PATH exported with no interactive shell in
@@ -1164,6 +1190,61 @@ seam_fixture "$home"
 err=$(env -u OMARCHY_PATH bash -c \
   "source '$home/env.sh'; source '$home/rc.sh'" 2>&1 >/dev/null)
 assert_equals "seam: the rc tier is silent when Omarchy's rc is absent" "$err" ""
+
+# Dev-link. /etc/omarchy.conf is written by omarchy-dev-link, and a dev-linked
+# checkout has to win over the packaged path — otherwise the rc tier below loads
+# the package's rc out from under a dev-linked tree. Fixture /etc, never the
+# real one.
+home=$(make_home)
+seam_fixture "$home"
+mkdir -p "$home/dev/omarchy/bin"
+echo "OMARCHY_PATH=$home/dev/omarchy" >"$home/etc/omarchy.conf"
+out=$(env -u OMARCHY_PATH HOME="$home" bash -c \
+  "source '$home/env.sh' 2>/dev/null; echo \${OMARCHY_PATH:-UNSET}")
+assert_equals "seam: dev-link's OMARCHY_PATH wins over the packaged default" \
+  "$out" "$home/dev/omarchy"
+# ...and only then is $OMARCHY_PATH/bin prepended. On a production install the
+# omarchy-* binaries are already /usr/bin/omarchy-*, so prepending would be noise.
+assert_contains "seam: dev-link prepends its own bin" \
+  "$(env -u OMARCHY_PATH HOME="$home" PATH=/usr/bin bash -c \
+    "source '$home/env.sh' 2>/dev/null; echo \$PATH")" \
+  "$home/dev/omarchy/bin:/usr/bin"
+
+# Dev-link absent, with a stale value inherited from the environment: the
+# packaged default must be forced, not the stale value preserved. This is the
+# staleness reasoning the hand-rolled block carried and upstream's file now
+# carries; without this assertion the file could simply pass OMARCHY_PATH
+# through and every test above would still be green.
+home=$(make_home)
+seam_fixture "$home"
+out=$(env OMARCHY_PATH=/stale/dev/link HOME="$home" bash -c \
+  "source '$home/env.sh' 2>/dev/null; echo \${OMARCHY_PATH:-UNSET}")
+assert_equals "seam: no dev-link forces the packaged default over a stale value" \
+  "$out" "$home/usr/share/omarchy"
+
+# User tool paths are APPENDED, so system binaries keep precedence — and so
+# crumb's own env.d/10-pnpm.sh and env.d/20-local-bin.sh, which run after this
+# file and prepend, stay in front of them. An upstream switch from append to
+# prepend would silently reorder every non-interactive shell, which is what the
+# watch on this file exists to catch.
+out=$(env -u OMARCHY_PATH HOME="$home" PATH=/usr/bin bash -c \
+  "source '$home/env.sh' 2>/dev/null; echo \$PATH")
+assert_equals "seam: the env tier appends the user tool paths behind /usr/bin" \
+  "$out" "/usr/bin:$home/.local/share/mise/shims:$home/.local/bin"
+
+# Omarchy absent — a machine without it is crumb's whole premise, and the guard
+# is the only thing standing between that machine and an error on every shell,
+# interactive or not.
+home=$(make_home)
+seam_fixture "$home"
+rm -f "$home/$seam_bootstrap"
+err=$(env -u OMARCHY_PATH HOME="$home" bash -c "source '$home/env.sh'" 2>&1 >/dev/null)
+assert_equals "seam: the env tier is silent when env-bootstrap is absent" "$err" ""
+# And $? stays clean. The guard is the last thing in the file, so a false guard
+# would hand 1 to whatever crumb's tier-1 loop did next — the same trap that
+# keeps the rc tier post-guard. The trailing `:` is what holds this.
+env -u OMARCHY_PATH HOME="$home" bash -c "source '$home/env.sh'" >/dev/null 2>&1
+assert_equals "seam: the env tier leaves \$? at 0 with env-bootstrap absent" "$?" "0"
 
 # The board resolves a manifest path against either checkout. Every entry used
 # to be a plugins-repo path, so a rice-repo path read as missing from the repo.
