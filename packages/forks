@@ -41,11 +41,11 @@ plugins/shokupan-omenu/BarWidget.qml /usr/share/omarchy/shell/plugins/menu/BarWi
 # The r1744 upgrade absorbed the microphone wrapper's fixed-width pin into
 # upstream's own BarIconButton behaviour (deviation deleted, not regressed).
 # ADR-0042: the bash seam. The rice's Omarchy arm was split out of .bashrc so
-# the .bashrc can go desktop-agnostic in crumb, and split again across crumb's
-# two tiers the way upstream's own default/bashrc divides them: the
-# OMARCHY_PATH block in .config/bash/env.d/00-omarchy.sh above the
-# interactivity guard, and the rc source in .config/bash/50-omarchy-rc.sh
-# below it.
+# the .bashrc could go desktop-agnostic in crumb (which now owns it), and split
+# again across crumb's two tiers the way upstream's own default/bashrc divides
+# them: the OMARCHY_PATH block in .config/bash/env.d/00-omarchy.sh above the
+# interactivity guard, and the rc source in .config/bash/50-omarchy-rc.sh below
+# it.
 #
 # The watch is recorded against 50-omarchy-rc.sh, the file that actually
 # sources /usr/share/omarchy/default/bash/rc. It depends on that path existing

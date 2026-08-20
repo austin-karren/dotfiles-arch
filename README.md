@@ -16,16 +16,24 @@ Named for 食パン, Japanese milk bread. A rice can be named anything — "rice
 just the term for a customized desktop, so the bread is a joke rather than a
 category error.
 
+The dev config that does **not** need a desktop — shell, git, mise, Zed — left
+this repo on 2026-08-19 for a fourth one, `crumb` (private, ADR-0002). It stows
+itself and must work on a machine with no Omarchy at all. If you are looking for
+`.bashrc`, `.config/git/config`, `.config/mise/config.toml` or `.config/zed/`,
+they live there now; `crumb`'s own README documents them. What stayed here is the
+Omarchy half of the shell seam — see "The bash seam" below.
+
 Kept separate from my [macOS dotfiles](https://github.com/austin-karren/dotfiles)
-because the two platforms share almost nothing beyond `.gitconfig`. The shell
-here is bash (Omarchy's), not the zsh setup from that repo.
+because the two platforms share almost nothing: the shell here is bash
+(Omarchy's), not the zsh setup from that repo. The one thing they did overlap on,
+git, is `crumb`'s now rather than either platform repo's.
 
 ## Layout
 
 This is a single flat Stow package: paths mirror `$HOME` directly.
 
 ```
-.bashrc                 -> ~/.bashrc
+.config/bash/*.sh       -> ~/.config/bash/*.sh    (the Omarchy half of the seam)
 .config/hypr/*.lua      -> ~/.config/hypr/*.lua    (quattro; .conf for the rest)
 .local/bin/*            -> ~/.local/bin/*
 ...
@@ -65,25 +73,14 @@ which version you actually want.
 
 ## Required: git identity
 
-`.config/git/config` deliberately contains no email. It ends with:
+Set up in `crumb`, not here. `crumb` installs `~/.config/git/config`, which
+carries no name or email and ends with an include of the untracked
+`~/.gitconfig.local` holding both (ADR-0003). A missing include fails
+**silently** — git just rejects commits with "please tell me who you are". See
+`crumb`'s README for the file to create.
 
-```gitconfig
-[include]
-	path = ~/.gitconfig.local
-```
-
-Create that file (it is gitignored, and never committed):
-
-```gitconfig
-[user]
-	email = your.email@example.com
-```
-
-A missing include fails **silently** — git will not warn you, it will just reject
-commits with "please tell me who you are". If you see that, this file is why.
-
-Note: git reads `~/.gitconfig` only when `~/.config/git/config` does not exist.
-Since this repo installs the latter, a stray `~/.gitconfig` is ignored entirely.
+It is still required on this machine: without it, no commit in *this* repo
+works either.
 
 ## Required: compose identity
 
@@ -102,24 +99,27 @@ An empty file is enough to parse. Run `omarchy-restart-xcompose` after edits.
 
 ## Optional: shell identity
 
-`.bashrc` ends with the same pattern, for anything carrying an account name or a
-secret:
+Also `crumb`'s: its `.bashrc` sources `~/.bashrc.local` last, guarded, for
+anything carrying an account name or a secret (ADR-0003, same pattern as the git
+include). Documented in `crumb`'s README. `.bashrc.local` stays in this repo's
+`.gitignore` because the file sits in `$HOME` and both trees stow there.
 
-```bash
-[[ -f ~/.bashrc.local ]] && source ~/.bashrc.local
-```
+## The bash seam
 
-Create that file (gitignored, never committed) with whatever this machine needs —
-currently the AWS profile:
+`crumb`'s `.bashrc` sources two drop-in directories, split by bash's
+interactivity guard, and knows nothing about what lands in them. This repo
+contributes the Omarchy half:
 
-```bash
-export AWS_PROFILE=your-profile
-export AWS_SDK_LOAD_CONFIG=1
-```
+| Drop-in | Tier | What it does |
+|---|---|---|
+| `.config/bash/env.d/00-omarchy.sh` | above the guard | Exports `OMARCHY_PATH`, so `ssh box somecommand` sees it |
+| `.config/bash/50-omarchy-rc.sh` | below the guard | Sources Omarchy's `default/bash/rc` for interactive shells |
 
-Unlike the git include this one is guarded, so a missing file is harmless: the
-shell starts fine and you simply have no AWS profile. It is sourced **last**, so
-it can also override anything the tracked `.bashrc` set.
+Which tier a piece lands in is load-bearing: something above the guard that
+belongs below runs in non-interactive shells, and something below the guard that
+belongs above is simply unset over `ssh box somecommand` — a silent failure
+either way. `test/loaf-test.sh` holds both tiers. `crumb` ADR-0001 records the
+seam itself.
 
 ## What's here
 
@@ -127,15 +127,13 @@ it can also override anything the tracked `.bashrc` set.
 |---|---|
 | `.config/hypr/` | Hyprland: bindings, monitors, looknfeel, windows, idle/lock/sunset |
 | `.config/ghostty/`, `alacritty/`, `foot/` | Terminals. Ghostty sources Omarchy's dynamic theme path, which stays machine-side |
-| `.config/zed/` | Editor + agent settings |
-| `.config/git/config` | Aliases, delta pager, zdiff3, rerere |
 | `.config/uwsm/` | Session env (incl. making snap apps visible to the launcher) |
 | `.config/omarchy/shell.json` | The quickshell bar: layout, module settings, idle timings. Hot-reloaded for bar/layout edits — but the **idle timings need `omarchy-restart-shell`**: hot-reload updates the reported values while the IdleMonitor keeps its old timer, so the chain silently never fires (observed 2026-08-11) |
 | `.config/omarchy/bar/modules/` | Custom QML bar modules, for behaviour a `type: "command"` entry cannot express. Since the r1744 upgrade only one remains: the indicators fork carrying the zen aspect-ratio toggle (the hosted network/microphone widgets and the bar-settings gear were deleted — absorbed or regressed to stock, see shokupan-plugins ADR-0044's addendum). New files here need `omarchy-restart-shell`; edits hot-reload |
 | `.config/omarchy/themes/tokyo-night/shell.bar.toml` | Pins the Tokyo Night bar near-black as system chrome (shokupan-plugins ADR-0009, scoped to that theme at r1744). A `[bar]` section override spliced into the generated shell.toml, the same mechanism as stock tokyo-night's `shell.lock.toml` — it replaces the whole section, so re-check its keys against upstream's template after an upgrade. Other themes get stock bar colors |
 | `.config/omarchy/extensions/omarchy-menu.jsonc` | Our rows in the Omarchy Menu, and the System Palette's only home since quattro (ADR-0027) — the sanctioned extension point, not a patched Omarchy file. Hot-reloaded. Replaced `menu.sh`, whose bash extension point quattro removed |
 | `.config/starship.toml`, `.config/tmux/` | Prompt, and the general-purpose multiplexer. Agent sessions live in herdr instead — a self-updating binary in `~/.local/bin`, deliberately not in the manifest (ADR-0015) |
-| `.bashrc` | Thin — sources Omarchy's `default/bash/rc` |
+| `.config/bash/` | The Omarchy half of the shell seam: `env.d/00-omarchy.sh` above `crumb`'s interactivity guard, `50-omarchy-rc.sh` below it. `crumb` owns the `.bashrc` that sources both and knows nothing about Omarchy — see "The bash seam" above |
 | `.local/bin/` | The `loaf` CLI, plus every script a keybinding or bar module depends on. The npx shims (`codex`, `gemini`, …) stay untracked — they are generated, not config |
 | `.config/omarchy/hooks/post-update.d/` | Runs `loaf heal` after each `omarchy update` — the sanctioned hook directory, not a patched Omarchy file |
 | `.local/share/applications/` | The web apps (`omarchy-launch-webapp` entries) and their icons, plus the Flatpak ref handler. Tracked because a rebuild would otherwise come up with no web apps at all. The `shokupan-cmd-*` command entries and their generator were deleted 2026-08-15 with ADR-0027's supersession — the apps list shows applications only |
@@ -228,7 +226,8 @@ exports `MANPAGER="sh -c 'col -bx | bat -l man -p'"` unconditionally, so without
 it `man` pipes into a missing binary in any interactive terminal.
 
 Language runtimes stay out of both files — [mise](https://mise.jdx.dev) owns
-those, pinned per-project in `~/.config/mise/config.toml`.
+those, pinned per-project in `~/.config/mise/config.toml`, which `crumb`
+installs rather than this repo.
 
 ## Which Omarchy a commit was built against
 
@@ -300,7 +299,7 @@ are the to-do list.
 |---|---|---|
 | 0001 | Omarchy layered onto CachyOS, not the Omarchy ISO — includes the installer path fix | accepted — recorded in `omarchy-desktop-on-cachyos` |
 | [0002](./docs/adr/0002-single-flat-stow-package.md) | One flat Stow package per tree, adopted in place | accepted — amended 2026-08-19 |
-| [0003](./docs/adr/0003-identity-behind-untracked-includes.md) | Identity behind untracked includes | accepted |
+| [0003](./docs/adr/0003-identity-behind-untracked-includes.md) | Identity behind untracked includes | accepted — amended 2026-08-19 |
 | [0004](./docs/adr/0004-waybar-modules-dismiss-on-second-click.md) | Bar modules dismiss on a second click | superseded by 0033 |
 | [0005](./docs/adr/0005-waybar-supervised-by-a-userspace-watchdog.md) | Waybar supervised by a polling watchdog | superseded by 0033 |
 | 0006 | Calendar on its own special workspace | accepted — recorded in `shokupan-plugins` |

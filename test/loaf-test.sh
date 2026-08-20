@@ -1052,7 +1052,7 @@ fi
 # bash seam
 # ---------------------------------------------------------
 #
-# The rice's .bashrc is being split: crumb takes the portable half and owns a
+# The rice's .bashrc was split: crumb took the portable half and owns a
 # desktop-agnostic .bashrc that sources two tiers of drop-ins —
 # ~/.config/bash/env.d/*.sh BEFORE the `[[ $- != *i* ]] && return` guard, and
 # ~/.config/bash/*.sh after it. The rice keeps the Omarchy-coupled half; crumb
@@ -1065,8 +1065,9 @@ fi
 # business in a non-interactive shell. Which tier a piece lands in is the thing
 # these tests hold — a file drifting across the guard is silent otherwise.
 #
-# Nothing here is the live cutover — the .bashrc stays tracked until a separate
-# gated step swaps the symlinks.
+# The cutover happened 2026-08-19: .bashrc is no longer tracked here and
+# ~/.bashrc is a symlink into ~/crumb. These assertions cover only the rice's
+# two drop-ins, which is all this repo still owns of the seam.
 
 seam_env=.config/bash/env.d/00-omarchy.sh
 seam_rc=.config/bash/50-omarchy-rc.sh
