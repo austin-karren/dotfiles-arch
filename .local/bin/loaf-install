@@ -3,19 +3,17 @@
 # loaf:summary=Bootstrap the rice onto a fresh CachyOS + Omarchy machine
 # loaf:args=[--force]
 
-# The install path ADR-0035 says this repo owes: take a machine that already has
-# the two base layers — CachyOS installed normally, quattro layered onto it per
-# the lab's patched upgrade script — and put everything this repo decides on top:
-# chosen packages, flatpaks, the stowed config, the debloat list, migrations.
-#
-# It BINDS to the Omarchy version in packages/omarchy.pin. The rice reaches into
-# upstream's files (bar modules, menu overrides, window rules), so "does this
-# work" is only answerable against the version it was verified on. A different
-# installed version is a hard stop unless --force says the mismatch is accepted.
-#
-# Deliberately an orchestrator: every step below is an existing loaf command or
-# a pacman call, so a partial run is resumed by simply running it again — each
-# step is idempotent.
+# The install path omarchy-desktop-on-cachyos ADR-0035 says this repo owes: take
+# a machine that already has the two base layers — CachyOS installed normally,
+# quattro layered onto it per the lab's patched upgrade script — and put
+# everything this repo decides on top: chosen packages, flatpaks, the stowed
+# config, the debloat list, migrations. It BINDS to the Omarchy version in
+# packages/omarchy.pin. The rice reaches into upstream's files (bar modules,
+# menu overrides, window rules), so "does this work" is only answerable against
+# the version it was verified on. A different installed version is a hard stop
+# unless --force says the mismatch is accepted. Deliberately an orchestrator:
+# every step below is an existing loaf command or a pacman call, so a partial
+# run is resumed by simply running it again — each step is idempotent.
 
 set -uo pipefail
 
@@ -110,7 +108,8 @@ else
 fi
 
 # ---------------------------------------------------------
-# 3. Boot contract: LUKS cmdline vs Omarchy's initramfs hooks (ADR-0047)
+# 3. Boot contract: LUKS cmdline vs Omarchy's initramfs hooks
+#    (omarchy-desktop-on-cachyos ADR-0047)
 # ---------------------------------------------------------
 
 step "Boot contract"
@@ -160,7 +159,7 @@ done
 if ((${#missing[@]})); then
   say "installing ${#missing[@]} chosen package(s)"
   # OMARCHY_ALLOW_DIRECT_PACMAN: quattro's pacman hook refuses a direct call
-  # without it (ADR-0035).
+  # without it (omarchy-desktop-on-cachyos ADR-0035).
   $SUDO env OMARCHY_ALLOW_DIRECT_PACMAN=1 pacman -S --needed --noconfirm "${missing[@]}" ||
     die "package install failed" "re-run 'loaf install' once fixed — every step resumes"
 else

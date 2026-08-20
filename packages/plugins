@@ -1,6 +1,6 @@
 # The rice's own Omarchy shell plugins, each published as a standalone public
-# repo so `omarchy plugin add` can install it (ADR-0044 rule 3/4). One line per
-# plugin:
+# repo so `omarchy plugin add` can install it (shokupan-plugins ADR-0044
+# rule 3/4). One line per plugin:
 #
 #   <id> <git-url>
 #

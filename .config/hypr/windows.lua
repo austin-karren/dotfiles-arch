@@ -1,8 +1,9 @@
 -- Personal window rules, loaded from hyprland.lua after Omarchy's defaults.
--- Ported from windows.conf at the quattro migration (ADR-0033). Quattro's stock
--- config has no user windows file - hyprland.lua requires this one explicitly.
+-- Ported from windows.conf at the quattro migration
+-- (omarchy-desktop-on-cachyos ADR-0033). Quattro's stock config has no user
+-- windows file - hyprland.lua requires this one explicitly.
 --
--- GNOME Calendar as the clock popup's engine (ADR-0006) ----------------------
+-- GNOME Calendar as the clock popup's engine (shokupan-plugins ADR-0006) ----
 --
 -- Restored with the r1744 calendar-clone work: the quattro port dropped these
 -- rules on the (wrong) assumption the clock's month grid replaced the app, and

@@ -3,13 +3,12 @@
 # loaf:summary=Check the three layers for drift, without changing anything
 
 # This machine is three layers deep: CachyOS is the base, Omarchy is the desktop
-# layered on top of it as distro packages (ADR-0035), and the rice sits on top of
-# both. Each layer updates on its own schedule and can quietly undo the one above
-# it, so this asserts what should be true and reports what is not.
-#
-# Read-only by construction: it never writes, never sudos, and never touches the
-# network. `loaf heal` is the half that fixes things. Exits non-zero if anything
-# is wrong, so it can gate a hook.
+# layered on top of it as distro packages (omarchy-desktop-on-cachyos ADR-0035),
+# and the rice sits on top of both. Each layer updates on its own schedule and
+# can quietly undo the one above it, so this asserts what should be true and
+# reports what is not. Read-only by construction: it never writes, never sudos,
+# and never touches the network. `loaf heal` is the half that fixes things.
+# Exits non-zero if anything is wrong, so it can gate a hook.
 
 set -uo pipefail
 
@@ -66,31 +65,28 @@ warn() { printf '  \033[33m!\033[0m %-14s %s\n' "$1" "$2"; }
 # Base — CachyOS
 # ---------------------------------------------------------
 
-# The bridge that originally put Omarchy on this base is retired (ADR-0035), and
-# its three sentinels went with it: `bridge patch` and `stale clone` guarded an
-# installer that will never run again, and `walker hold` guarded a Walker that
-# quattro does not ship. Deleted rather than left warning, per ADR-0028 —
-# tolerated noise stops being read.
-#
-# What replaces them is `mirrorlist`, which guards the one thing measured to
-# actually destroy this base.
+# The bridge that originally put Omarchy on this base is retired
+# (omarchy-desktop-on-cachyos ADR-0035), and its three sentinels went with it:
+# `bridge patch` and `stale clone` guarded an installer that will never run
+# again, and `walker hold` guarded a Walker that quattro does not ship. Deleted
+# rather than left warning, per omarchy-desktop-on-cachyos ADR-0028 —
+# tolerated noise stops being read. What replaces them is `mirrorlist`, which
+# guards the one thing measured to actually destroy this base.
 
 layer "Base (CachyOS)"
 
 # Omarchy is a DESKTOP layer here and nothing more. The base is CachyOS, and the
-# base is not Omarchy's to manage -- see ADR-0034.
-#
-# The specific hazard: `omarchy-channel-set` calls `omarchy-refresh-pacman`, which
-# does `cp -f $OMARCHY_PATH/default/pacman/pacman-<channel>.conf /etc/pacman.conf`
-# and then `pacman -Syyuu --noconfirm`. That replaces the repo list with Omarchy's
-# vanilla-Arch one and the second `u` permits DOWNGRADES, so every znver4-optimised
-# package rolls back to stock Arch and linux-cachyos loses its repo. It nearly ran
-# on this machine on 2026-08-08 and was stopped only by an unrelated failure
-# short-circuiting the `&&`.
-#
-# A PATH shim cannot guard this: Omarchy's bin sits ahead of ~/.local/bin in PATH
-# (index 2 vs 14), so a same-named script here would never be reached. Hence a
-# check, which at least makes the damage loud and immediate.
+# base is not Omarchy's to manage -- see omarchy-desktop-on-cachyos ADR-0034.
+# The specific hazard: `omarchy-channel-set` calls `omarchy-refresh-pacman`,
+# which does `cp -f $OMARCHY_PATH/default/pacman/pacman-<channel>.conf
+# /etc/pacman.conf` and then `pacman -Syyuu --noconfirm`. That replaces the repo
+# list with Omarchy's vanilla-Arch one and the second `u` permits DOWNGRADES, so
+# every znver4-optimised package rolls back to stock Arch and linux-cachyos
+# loses its repo. It nearly ran on this machine on 2026-08-08 and was stopped
+# only by an unrelated failure short-circuiting the `&&`. A PATH shim cannot
+# guard this: Omarchy's bin sits ahead of ~/.local/bin in PATH (index 2 vs 14),
+# so a same-named script here would never be reached. Hence a check, which at
+# least makes the damage loud and immediate.
 
 if [[ -f $PACMAN_CONF ]]; then
   cachyos_repos=$(grep -c '^\[cachyos' "$PACMAN_CONF" 2>/dev/null || echo 0)
@@ -103,18 +99,19 @@ if [[ -f $PACMAN_CONF ]]; then
   fi
 fi
 
-# The measured root cause of the quattro upgrade's near-miss (ADR-0035). Omarchy's
-# `configure_pacman_channel` overwrites the mirrorlist with a single
-# `Server = https://stable-mirror.omarchy.org/...`, which is a FROZEN Arch snapshot.
-# CachyOS tracks Arch rolling, so pinning core/extra to that snapshot puts the two
-# halves of the system into permanent version skew and pacman starts refusing
-# partial downgrades. It presented as an unrelated aquamarine ABI conflict and was
-# not; restoring the rolling mirrorlist collapsed the whole thing.
-#
-# Unguarded until now, and — alongside omarchy-channel-set — the remaining way the
-# base gets destroyed. `[cachyos*]` surviving in pacman.conf does not imply the
-# mirrorlist did: the upgrade's pacman.conf edit is a surgical awk that leaves the
-# repo list alone while the mirrorlist is replaced wholesale.
+# The measured root cause of the quattro upgrade's near-miss
+# (omarchy-desktop-on-cachyos ADR-0035). Omarchy's `configure_pacman_channel`
+# overwrites the mirrorlist with a single `Server =
+# https://stable-mirror.omarchy.org/...`, which is a FROZEN Arch snapshot.
+# CachyOS tracks Arch rolling, so pinning core/extra to that snapshot puts the
+# two halves of the system into permanent version skew and pacman starts
+# refusing partial downgrades. It presented as an unrelated aquamarine ABI
+# conflict and was not; restoring the rolling mirrorlist collapsed the whole
+# thing. Unguarded until now, and — alongside omarchy-channel-set — the
+# remaining way the base gets destroyed. `[cachyos*]` surviving in pacman.conf
+# does not imply the mirrorlist did: the upgrade's pacman.conf edit is a
+# surgical awk that leaves the repo list alone while the mirrorlist is replaced
+# wholesale.
 if [[ -f $MIRRORLIST ]]; then
   if grep -qE '^[[:space:]]*Server[[:space:]]*=[[:space:]]*https?://[a-z-]*mirror\.omarchy\.org/' \
     "$MIRRORLIST" 2>/dev/null; then
@@ -126,22 +123,19 @@ if [[ -f $MIRRORLIST ]]; then
   fi
 fi
 
-# NetworkManager delegates wifi to a backend it does not itself provide, and says
-# nothing when the one it was told to use is absent — the device simply reports
-# `unavailable` and scans nothing. On a machine that lives on ethernet that is
-# invisible.
-#
-# This is the check ADR-0034 wrote as "warns if wifi.backend=iwd is gone", which
-# quattro made not merely stale but actively misleading: it went on reporting ✓
-# after quattro's `pacman -Rns` removed iwd on 2026-08-09, because the stanza
-# naming iwd was still there. It asserted a bridge side effect rather than
-# anything true about this machine.
-#
-# So it neither inverts nor goes. Inverting — warning when iwd IS set — would
-# assert quattro's preference and nag a machine where iwd was deliberately
-# reinstalled and works. The invariant that survives either resolution is that
-# the configured backend exists. Backend names match their package names for the
-# two NetworkManager accepts (`iwd`, `wpa_supplicant`).
+# NetworkManager delegates wifi to a backend it does not itself provide, and
+# says nothing when the one it was told to use is absent — the device simply
+# reports `unavailable` and scans nothing. On a machine that lives on ethernet
+# that is invisible. This is the check omarchy-desktop-on-cachyos ADR-0034 wrote
+# as "warns if wifi.backend=iwd is gone", which quattro made not merely stale
+# but actively misleading: it went on reporting ✓ after quattro's `pacman
+# -Rns` removed iwd on 2026-08-09, because the stanza naming iwd was still
+# there. It asserted a bridge side effect rather than anything true about this
+# machine. So it neither inverts nor goes. Inverting — warning when iwd IS set
+# — would assert quattro's preference and nag a machine where iwd was
+# deliberately reinstalled and works. The invariant that survives either
+# resolution is that the configured backend exists. Backend names match their
+# package names for the two NetworkManager accepts (`iwd`, `wpa_supplicant`).
 if [[ -f $NM_CONF ]]; then
   wifi_backend=$(sed -n 's/^[[:space:]]*wifi\.backend[[:space:]]*=[[:space:]]*//p' "$NM_CONF" | head -1)
   if [[ -z $wifi_backend ]]; then
@@ -171,15 +165,15 @@ else
   warn "kernel" "running $kernel_running — not a CachyOS kernel"
 fi
 
-# The measured root cause of the r1744 boot failure (ADR-0047; recovery runbook
-# linked there). Omarchy's omarchy_hooks.conf REPLACES the HOOKS array with the
-# udev/busybox flavour, whose `encrypt` hook ignores the sd-encrypt-style
-# rd.luks.uuid= parameter this CachyOS install boots with — so root never
-# unlocks. The trap detonates at the NEXT initramfs rebuild (usually a kernel
-# bump), not when the hooks file changes; this check fires in the window
-# between the two. /proc/cmdline is the running boot's truth and needs no sudo;
-# the real subject (/boot/limine.conf) is root-only, so system-update verifies
-# the rendered menu where sudo is already in play.
+# The measured root cause of the r1744 boot failure (omarchy-desktop-on-cachyos
+# ADR-0047; recovery runbook linked there). Omarchy's omarchy_hooks.conf
+# REPLACES the HOOKS array with the udev/busybox flavour, whose `encrypt` hook
+# ignores the sd-encrypt-style rd.luks.uuid= parameter this CachyOS install
+# boots with — so root never unlocks. The trap detonates at the NEXT initramfs
+# rebuild (usually a kernel bump), not when the hooks file changes; this check
+# fires in the window between the two. /proc/cmdline is the running boot's truth
+# and needs no sudo; the real subject (/boot/limine.conf) is root-only, so
+# system-update verifies the rendered menu where sudo is already in play.
 OMARCHY_HOOKS_CONF="${OMARCHY_HOOKS_CONF:-/etc/mkinitcpio.conf.d/omarchy_hooks.conf}"
 CRYPT_DROPIN="${CRYPT_DROPIN:-/etc/limine-entry-tool.d/luks-cryptdevice.conf}"
 luks_root=false
@@ -211,8 +205,9 @@ layer "Desktop (Omarchy)"
 
 # Omarchy used to be a git checkout at ~/.local/share/omarchy, and this asked
 # whether that checkout was intact. Under quattro it is distro packages at
-# /usr/share/omarchy (ADR-0035), so there is no tree to describe, nothing to be
-# dirty, and no `git pull` to revert a local edit. Three checks went with it:
+# /usr/share/omarchy (omarchy-desktop-on-cachyos ADR-0035), so there is no tree
+# to describe, nothing to be dirty, and no `git pull` to revert a local edit.
+# Three checks went with it:
 #
 #   `checkout`      — became this, an assertion about the package
 #   the porcelain   — deleted; there is no worktree to have unexpected edits in
@@ -336,7 +331,8 @@ done
 # The plugins carry most of the absolute upstream paths (hosted widgets load
 # upstream QML by full path), and they left this repo at the 2026-08-18 split.
 # Scanning only the rice would leave the check passing over an empty set — the
-# ADR-0028 failure mode where a sentinel outlives its subject.
+# omarchy-desktop-on-cachyos ADR-0028 failure mode where a sentinel outlives its
+# subject.
 [[ -d $PLUGINS_ROOT ]] && ref_dirs+=("$PLUGINS_ROOT")
 if ((${#ref_dirs[@]})); then
   broken_refs=()

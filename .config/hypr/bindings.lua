@@ -1,6 +1,7 @@
--- Personal keybinding overrides, loaded after Omarchy's defaults.
--- Ported from bindings.conf at the quattro migration (ADR-0033). Unbind a
--- default before replacing it; hl.unbind of a key that is not bound is an error.
+-- Personal keybinding overrides, loaded after Omarchy's defaults. Ported from
+-- bindings.conf at the quattro migration (omarchy-desktop-on-cachyos ADR-0033).
+-- Unbind a default before replacing it; hl.unbind of a key that is not bound is
+-- an error.
 
 -- The launcher chords are STOCK again (2026-08-17). ADR-0027's merged
 -- apps+commands list is fully retired: upstream deleted the launcher plugin
@@ -463,8 +464,9 @@ shokupan.usable_area = usable_area
 -- the quattro port they lived in apexshot.conf sourced from exactly there — a
 -- file the Lua config manager never reads, which silently killed all six
 -- shortcuts. The .conf pair is retired; these are the same chords verbatim.
--- Kept through the 2026-08-15 stock-first audit at the user's word: apexshot
--- is back over the native capture flow until that flow improves (ADR-0044).
+-- Kept through the 2026-08-15 stock-first audit at the user's word: apexshot is
+-- back over the native capture flow until that flow improves (shokupan-plugins
+-- ADR-0044).
 o.bind("SUPER + SHIFT + 4", "Screenshot area", "/usr/bin/apexshot capture area")
 o.bind("CTRL + ALT + X", "Screenshot crosshair", "/usr/bin/apexshot capture crosshair")
 o.bind("SUPER + CTRL + ALT + S", "Screenshot screen", "/usr/bin/apexshot capture screen")

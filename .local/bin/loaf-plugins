@@ -28,13 +28,14 @@
 # `loaf heal` runs; a missing checkout is then a loud failure rather than a
 # silent clone.
 #
-# --index is the other direction, and does not install anything. packages/plugins
-# records the seven standalone `omarchy-*` repos each plugin is published from
-# (ADR-0044 rule 3/4) — the public `omarchy plugin add` path, which is NOT how
-# this machine runs them. It resolves each recorded id against the checkout and
-# reports the publish URL, so a plugin that was renamed, dropped, or never split
-# out is visible instead of being a stale line nobody reads. Read-only, like
-# `loaf packages`: the manifest is the decision and the checkout is the fact.
+# --index is the other direction, and does not install anything.
+# packages/plugins records the seven standalone `omarchy-*` repos each plugin
+# is published from (shokupan-plugins ADR-0044 rule 3/4) — the public
+# `omarchy plugin add` path, which is NOT how this machine runs them. It
+# resolves each recorded id against the checkout and reports the publish URL,
+# so a plugin that was renamed, dropped, or never split out is visible instead
+# of being a stale line nobody reads. Read-only, like `loaf packages`: the
+# manifest is the decision and the checkout is the fact.
 
 set -uo pipefail
 

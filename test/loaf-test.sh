@@ -1,23 +1,19 @@
 #!/bin/bash
 
-# Tests for the loaf CLI, which maintains the Shokupan rice.
-#
-# No framework on purpose. `loaf heal` runs from Omarchy's post-update.d hook, so
-# anything needed to test it would become a dependency of the update path. This
-# emits TAP and follows the shape of Omarchy's own test/omarchy-cli-test.sh.
-#
-# Every test builds a throwaway home under $BUILD and points LOAF_HOME at it, so
-# nothing here can touch the real one. `pacman` and the files doctor reads under
-# /etc are stubbed; `git` and `stow` are real, because what they do to a fixture
-# is exactly what they would do to the machine.
-#
-# The /etc stubs matter more than they look. Omarchy became package-backed
-# (ADR-0035) and doctor's base checks now assert things about pacman's config and
-# NetworkManager's, so a suite reading the real /etc would pass or fail on how the
-# machine running it happens to be set up — and would have gone red on the very
-# machine whose broken wifi backend prompted the check.
-#
-# Run: test/loaf-test.sh
+# Tests for the loaf CLI, which maintains the Shokupan rice. No framework on
+# purpose. `loaf heal` runs from Omarchy's post-update.d hook, so anything
+# needed to test it would become a dependency of the update path. This emits TAP
+# and follows the shape of Omarchy's own test/omarchy-cli-test.sh. Every test
+# builds a throwaway home under $BUILD and points LOAF_HOME at it, so nothing
+# here can touch the real one. `pacman` and the files doctor reads under /etc
+# are stubbed; `git` and `stow` are real, because what they do to a fixture is
+# exactly what they would do to the machine. The /etc stubs matter more than
+# they look. Omarchy became package-backed (omarchy-desktop-on-cachyos ADR-0035)
+# and doctor's base checks now assert things about pacman's config and
+# NetworkManager's, so a suite reading the real /etc would pass or fail on how
+# the machine running it happens to be set up — and would have gone red on the
+# very machine whose broken wifi backend prompted the check. Run:
+# test/loaf-test.sh
 
 set -uo pipefail
 
@@ -265,10 +261,11 @@ assert_contains "doctor: confirms the mirrorlist is not Omarchy's" "$out" "none 
 assert_contains "doctor: accepts NetworkManager's default wifi backend" \
   "$out" "NetworkManager default"
 
-# The retired bridge (ADR-0035) took three checks with it, and a package-backed
-# Omarchy took a fourth. Asserted by absence: leaving one behind would mean doctor
-# reporting on an installer that can no longer run, which is exactly the noise
-# ADR-0028 says to delete rather than tolerate.
+# The retired bridge (omarchy-desktop-on-cachyos ADR-0035) took three checks
+# with it, and a package-backed Omarchy took a fourth. Asserted by absence:
+# leaving one behind would mean doctor reporting on an installer that can no
+# longer run, which is exactly the noise omarchy-desktop-on-cachyos ADR-0028
+# says to delete rather than tolerate.
 for gone in "bridge patch" "stale clone" "walker hold" "cachyos patch" "checkout"; do
   assert_not_contains "doctor: no longer reports '$gone'" "$out" "$gone"
 done
@@ -318,8 +315,8 @@ assert_contains "doctor: still rejects a directory that is not a checkout" \
   "$out" "is not a git checkout"
 assert_equals "doctor: exits non-zero when the rice is not a checkout" "$status" "1"
 
-# Omarchy is packages now (ADR-0035), so "the desktop layer is gone" means the
-# package is gone rather than a checkout being absent.
+# Omarchy is packages now (omarchy-desktop-on-cachyos ADR-0035), so "the desktop
+# layer is gone" means the package is gone rather than a checkout being absent.
 home=$(make_home)
 out=$(STUB_ABSENT=omarchy loaf_run "$home" doctor)
 status=$?
@@ -394,10 +391,11 @@ status=$?
 assert_contains "doctor: accepts an installed wifi backend" "$out" "wifi backend   iwd"
 assert_equals "doctor: an installed backend is not a problem" "$status" "0"
 
-# The mirrorlist. ADR-0035's measured root cause: Omarchy pins a frozen Arch
-# snapshot, CachyOS is rolling, and the two skew permanently. Note the fixture's
-# pacman.conf still has its [cachyos*] section — the repo list surviving is exactly
-# what makes this failure look fine until pacman starts refusing downgrades.
+# The mirrorlist. omarchy-desktop-on-cachyos ADR-0035's measured root cause:
+# Omarchy pins a frozen Arch snapshot, CachyOS is rolling, and the two skew
+# permanently. Note the fixture's pacman.conf still has its [cachyos*] section
+# — the repo list surviving is exactly what makes this failure look fine until
+# pacman starts refusing downgrades.
 home=$(make_home)
 # shellcheck disable=SC2016  # pacman's own $repo/$arch placeholders, kept literal
 printf 'Server = https://stable-mirror.omarchy.org/$repo/os/$arch\n' \
