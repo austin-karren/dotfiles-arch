@@ -932,6 +932,23 @@ else
   pass "repo-only lists agree between .stow-local-ignore and the scripts"
 fi
 
+# CLAUDE.md is agent instructions for working in this repo, not config — it must
+# never be symlinked into $HOME as ~/CLAUDE.md. Stowed from the REAL repo, not
+# from make_home: the fixture writes its own .stow-local-ignore, so a fixture
+# stow would pass no matter what the tracked one says.
+claude_tracked=$(git -C "$ROOT" ls-files -- CLAUDE.md)
+assert_equals "repo-only: CLAUDE.md is tracked" "$claude_tracked" "CLAUDE.md"
+
+stow_home=$(mktemp -d "$BUILD/stowhome-XXXXXX")
+stow --no-folding -d "$(dirname "$ROOT")" -t "$stow_home" \
+  "$(basename "$ROOT")" >/dev/null 2>&1
+if [[ -e $stow_home/CLAUDE.md ]]; then
+  fail "repo-only: CLAUDE.md is not stowed into \$HOME" \
+    "stow linked $stow_home/CLAUDE.md — add ^/CLAUDE\\.md\$ to .stow-local-ignore"
+else
+  pass "repo-only: CLAUDE.md is not stowed into \$HOME"
+fi
+
 # ---------------------------------------------------------
 # widevine
 # ---------------------------------------------------------

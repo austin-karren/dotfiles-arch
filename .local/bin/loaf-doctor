@@ -27,7 +27,7 @@ PATH="$(dirname "$(realpath "$0")"):$PATH"
 # — they answer the same question from opposite ends, and when they disagree
 # doctor reports a file as missing that stow was never going to install. The
 # test suite asserts they stay in step.
-REPO_ONLY='^(lab/|docs/|packages/|migrations/|test/|README|CONTEXT|packages\.txt|\.gitignore|\.stow-local-ignore)'
+REPO_ONLY='^(lab/|docs/|packages/|migrations/|test/|README|CONTEXT|CLAUDE|packages\.txt|\.gitignore|\.stow-local-ignore)'
 STATE_DIR="${XDG_STATE_HOME:-$LOAF_HOME/.local/state}/loaf"
 
 # Omarchy is package-backed at a fixed path now, so this is a constant rather
