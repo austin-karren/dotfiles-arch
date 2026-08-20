@@ -55,8 +55,17 @@ plugins/shokupan-omenu/BarWidget.qml /usr/share/omarchy/shell/plugins/menu/BarWi
 # upstream went unnoticed while the board read clean. Drift means re-check that
 # rc still is what we source and that our guard still matches upstream's shape.
 #
-# 00-omarchy.sh carries no watch: it reads /etc/omarchy.conf, which is machine
-# state written by omarchy-dev-link rather than a packaged upstream file. The
-# follow-up that adopts upstream's default/bash/env-bootstrap is what puts a
-# second line on this board.
+# 00-omarchy.sh now carries a watch too. It used to hand-roll the OMARCHY_PATH
+# block against /etc/omarchy.conf — machine state, not a packaged upstream file,
+# so there was nothing to watch. It now sources
+# /usr/share/omarchy/default/bash/env-bootstrap instead, upstream's own single
+# source of truth for OMARCHY_PATH + PATH. Watch, not fork: nothing is copied,
+# but the env tier depends on that path existing and on what the file
+# establishes — OMARCHY_PATH, the dev-link $OMARCHY_PATH/bin prepend, and the
+# appended ~/.local/share/mise/shims and ~/.local/bin. Drift means re-diff the
+# resulting environment and PATH order, not just re-read the file: an upstream
+# switch from append to prepend would silently reorder every non-interactive
+# shell on this machine. Keep it in sync with upstream's own PAM PATH line in
+# install/config/ssh-command-path.sh, which covers the same directories.
 .config/bash/50-omarchy-rc.sh /usr/share/omarchy/default/bash/rc f5abfe8652e3df79de7d247f72a7f3b663a6521a8135609b04b839fc6ac2bfda watch
+.config/bash/env.d/00-omarchy.sh /usr/share/omarchy/default/bash/env-bootstrap 54b43c059d028c8332b7a7bda9b53f5dafdbfdc9c64c4f1dda73d5959a64e5e9 watch
