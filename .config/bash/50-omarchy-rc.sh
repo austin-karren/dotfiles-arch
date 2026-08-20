@@ -31,6 +31,17 @@
 #
 #   [[ -r /usr/share/omarchy/default/bash/env-bootstrap ]] && source /usr/share/omarchy/default/bash/env-bootstrap
 #
+# `${OMARCHY_PATH:-}`, not `$OMARCHY_PATH`: the first tier sources upstream's
+# env-bootstrap through a guard of its own, so on a machine without Omarchy the
+# variable is not set to a dead path — it is never set at all. Under `set -u`
+# that turns this guard from false into "unbound variable", which aborts the
+# shell before anything below this drop-in in crumb's tier-2 loop runs. The
+# default expands to the same empty string the unguarded read expands to
+# without `set -u`, so the guard stays false on a no-Omarchy machine either
+# way; nothing about the Omarchy-present path changes. Both halves carry the
+# default, not just the test: the two must expand identically, or a readable
+# /default/bash/rc would send the source down a path the guard never checked.
+#
 # Recorded as a `watch` in packages/forks against THIS file, since this is the
 # one that loads upstream's rc whole and depends on its internal structure.
-[[ -r "$OMARCHY_PATH/default/bash/rc" ]] && source "$OMARCHY_PATH/default/bash/rc"
+[[ -r "${OMARCHY_PATH:-}/default/bash/rc" ]] && source "${OMARCHY_PATH:-}/default/bash/rc"

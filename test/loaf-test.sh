@@ -1182,6 +1182,14 @@ out=$(env -u OMARCHY_PATH bash -c \
   "source '$home/env.sh'; source '$home/rc.sh'" 2>/dev/null)
 assert_contains "seam: the rc tier sources Omarchy's rc when present" \
   "$out" "SEAM-RC-SOURCED"
+# ...and under `set -u` too. The guard's `${OMARCHY_PATH:-}` default exists for
+# the unset case only; if it ever swallowed a value that IS set, this repo would
+# have traded an aborted shell for a silently unloaded rc — a behaviour change
+# rather than the hardening it is meant to be.
+out=$(env -u OMARCHY_PATH bash -c \
+  "set -u; source '$home/env.sh'; source '$home/rc.sh'" 2>/dev/null)
+assert_contains "seam: the rc tier sources Omarchy's rc under set -u" \
+  "$out" "SEAM-RC-SOURCED"
 
 # rc absent: a bare `source` errors on every shell, which is exactly what a
 # machine without Omarchy is. Nothing may reach stderr.
@@ -1245,6 +1253,33 @@ assert_equals "seam: the env tier is silent when env-bootstrap is absent" "$err"
 # keeps the rc tier post-guard. The trailing `:` is what holds this.
 env -u OMARCHY_PATH HOME="$home" bash -c "source '$home/env.sh'" >/dev/null 2>&1
 assert_equals "seam: the env tier leaves \$? at 0 with env-bootstrap absent" "$?" "0"
+
+# ...and the chain survives `set -u`. This is the second half of Omarchy being
+# absent, and it only became reachable when the env tier stopped hand-rolling
+# the OMARCHY_PATH block: the hand-rolled version exported a path
+# unconditionally, so the variable was always set and an unguarded read of it
+# could not fail. Upstream's env-bootstrap is sourced through a guard, so on a
+# machine without Omarchy the variable is legitimately UNSET — and under
+# `set -u` an unguarded `$OMARCHY_PATH` read is not a false guard handing on a
+# 1, it is an aborted shell. Bash prints "OMARCHY_PATH: unbound variable" and
+# nothing below it in the drop-in chain runs at all. `${OMARCHY_PATH:-}` in the
+# rc tier's guard is what holds this. Both tiers, in crumb's order.
+out=$(env -u OMARCHY_PATH HOME="$home" bash -c \
+  "set -u; source '$home/env.sh'; source '$home/rc.sh'; echo SEAM-SURVIVED" 2>/dev/null)
+assert_equals "seam: the drop-in chain survives set -u with OMARCHY_PATH unset" \
+  "$out" "SEAM-SURVIVED"
+# Surviving is not enough: an abort inside a sourced file writes to stderr, and
+# so does an unguarded read that somehow does not abort. Nothing may reach it.
+err=$(env -u OMARCHY_PATH HOME="$home" bash -c \
+  "set -u; source '$home/env.sh'; source '$home/rc.sh'" 2>&1 >/dev/null)
+assert_equals "seam: the drop-in chain is silent under set -u with OMARCHY_PATH unset" \
+  "$err" ""
+# The rc tier on its own, so a regression names the tier that owns the read
+# rather than pointing at the whole chain. Whether Omarchy's rc exists is not
+# the variable here — the variable is whether the guard can be evaluated at all.
+err=$(env -u OMARCHY_PATH HOME="$home" bash -c "set -u; source '$home/rc.sh'" 2>&1 >/dev/null)
+assert_equals "seam: the rc tier's guard evaluates with OMARCHY_PATH unset" \
+  "$err" ""
 
 # The board resolves a manifest path against either checkout. Every entry used
 # to be a plugins-repo path, so a rice-repo path read as missing from the repo.
