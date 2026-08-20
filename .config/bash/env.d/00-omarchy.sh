@@ -50,5 +50,17 @@
 #
 # Recorded as a `watch` in packages/forks against THIS file: nothing is copied,
 # but the path and the variables it establishes are depended on whole.
+
+# The second tier is deliberately the other way round, and that asymmetry is a
+# decision rather than a loose end: .config/bash/50-omarchy-rc.sh ends on its
+# guard with NO trailing `:`, so on a machine without Omarchy that drop-in
+# returns 1. It is safe there because crumb's tier-2 loop is followed by a
+# `[[ ]]` test and an `unset -v`, and the `unset` succeeds unconditionally — $?
+# is 0 again before any caller sees the 1. This tier has no such backstop: it is
+# sourced by every shell, and its 1 would escape into whatever crumb does next.
+# So the `:` belongs here and its absence belongs there. Do not "fix" either
+# file to match the other; test/loaf-test.sh pins the no-Omarchy exit status of
+# both tiers so that either change has to be argued for. The full reasoning is
+# in 50-omarchy-rc.sh's closing comment.
 [[ -r /usr/share/omarchy/default/bash/env-bootstrap ]] && source /usr/share/omarchy/default/bash/env-bootstrap
 :

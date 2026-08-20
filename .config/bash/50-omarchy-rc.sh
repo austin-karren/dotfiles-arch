@@ -44,4 +44,28 @@
 #
 # Recorded as a `watch` in packages/forks against THIS file, since this is the
 # one that loads upstream's rc whole and depends on its internal structure.
+
+# No trailing `:` on that guard, and the asymmetry with the first tier is
+# deliberate rather than an oversight. The guard is the last line of this file,
+# so on a machine without Omarchy it evaluates false and this drop-in returns 1
+# — where .config/bash/env.d/00-omarchy.sh ends on a bare `:` and returns 0.
+# The two tiers are not in the same position:
+#
+#   - Tier 1 runs in every shell, `ssh box somecommand` included, and what
+#     follows crumb's tier-1 loop can read $?. A 1 escaping there is the trap
+#     the `:` in that file exists to close.
+#   - Tier 2 runs only in interactive shells, and crumb's tier-2 loop is
+#     followed by `[[ $_crumb_nullglob == off ]] && shopt -u nullglob` and then
+#     `unset -v _crumb_f _crumb_nullglob`. The `unset` succeeds
+#     unconditionally, so $? is 0 again before anything can observe the 1.
+#
+# Nothing consumes this file's status today, so adding a `:` here would change
+# an observable exit status from 1 to 0 to fix a problem no caller has —
+# replacing working behaviour on inference. Left as it is on purpose.
+#
+# What would make the `:` correct is crumb's tier-2 loop no longer overwriting
+# $? on its way out. That shape lives in crumb's .bashrc, not here, so re-read
+# it before relying on this paragraph. test/loaf-test.sh pins the no-Omarchy
+# exit status of both tiers, so adding a `:` to either file surfaces as a
+# deliberate test change rather than a silent one.
 [[ -r "${OMARCHY_PATH:-}/default/bash/rc" ]] && source "${OMARCHY_PATH:-}/default/bash/rc"

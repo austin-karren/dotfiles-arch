@@ -1254,6 +1254,25 @@ assert_equals "seam: the env tier is silent when env-bootstrap is absent" "$err"
 env -u OMARCHY_PATH HOME="$home" bash -c "source '$home/env.sh'" >/dev/null 2>&1
 assert_equals "seam: the env tier leaves \$? at 0 with env-bootstrap absent" "$?" "0"
 
+# The rc tier does NOT do the same, and that asymmetry is the point of these two
+# assertions. Its guard is also the last line of its file, but it carries no
+# trailing `:`, so on this same no-Omarchy machine it returns 1. That is the
+# behaviour both drop-ins now document: safe because crumb's tier-2 loop is
+# followed by a `[[ ]]` test and an `unset -v` that overwrite $? before anything
+# reads it, and deliberately left alone rather than "fixed" to match tier 1.
+# Pinned so a future `:` added to the rc tier arrives as a deliberate change to
+# this file instead of a silent behaviour change nothing notices.
+env -u OMARCHY_PATH HOME="$home" bash -c "source '$home/rc.sh'" >/dev/null 2>&1
+assert_equals "seam: the rc tier leaves \$? at 1 with Omarchy absent" "$?" "1"
+# And the asymmetry itself, both tiers in one shell in crumb's order, so the
+# assertion that fails names the pair rather than one half of it. Either tier
+# growing or losing its trailing `:` moves this string.
+out=$(env -u OMARCHY_PATH HOME="$home" bash -c \
+  "source '$home/env.sh' >/dev/null 2>&1; printf '%s ' \$?
+   source '$home/rc.sh' >/dev/null 2>&1; printf '%s' \$?")
+assert_equals "seam: the two tiers' no-Omarchy exit statuses differ deliberately" \
+  "$out" "0 1"
+
 # ...and the chain survives `set -u`. This is the second half of Omarchy being
 # absent, and it only became reachable when the env tier stopped hand-rolling
 # the OMARCHY_PATH block: the hand-rolled version exported a path
