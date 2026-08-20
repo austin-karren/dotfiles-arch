@@ -64,7 +64,7 @@ git -C "$LOAF_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
 
 grep -q '^\[cachyos' "$PACMAN_CONF" 2>/dev/null ||
   die "no CachyOS repos in $PACMAN_CONF" \
-    "the base layer is not CachyOS — install it first (ADR-0034, ADR-0035)" \
+    "the base layer is not CachyOS — install it first (omarchy-desktop-on-cachyos ADR-0034, ADR-0035)" \
     "lab/quattro-vm documents the settings that matter"
 say "CachyOS repos present"
 
@@ -91,7 +91,7 @@ step "Desktop (Omarchy)"
 omarchy_version=$(pacman -Q omarchy 2>/dev/null | awk '{print $2}')
 [[ -n $omarchy_version ]] ||
   die "no omarchy package installed" \
-    "layer quattro onto the base first — lab/omarchy-upgrade-to-quattro.patched (ADR-0035)"
+    "layer quattro onto the base first — lab/omarchy-upgrade-to-quattro.patched (omarchy-desktop-on-cachyos ADR-0035)"
 
 PIN_FILE="$LOAF_ROOT/packages/omarchy.pin"
 [[ -f $PIN_FILE ]] || die "no packages/omarchy.pin — nothing records the verified version"
