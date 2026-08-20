@@ -72,7 +72,7 @@ if grep -qE '^HOOKS=.*[( ]encrypt[ )]' /etc/mkinitcpio.conf.d/omarchy_hooks.conf
     echo "all $cmdlines_total menu cmdline(s) carry cryptdevice="
   else
     failed+=("boot-contract")
-    printf '\e[31m%s of %s boot menu cmdlines lack cryptdevice= — do NOT reboot until fixed (ADR-0047)\e[0m\n' \
+    printf '\e[31m%s of %s boot menu cmdlines lack cryptdevice= — do NOT reboot until fixed (omarchy-desktop-on-cachyos ADR-0047)\e[0m\n' \
       "$((cmdlines_total - cmdlines_ok))" "$cmdlines_total"
   fi
 fi

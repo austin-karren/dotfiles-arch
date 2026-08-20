@@ -46,11 +46,11 @@ pnpm
 aws-cli-v2
 terraform
 
-# per-directory environment loading, hooked in .bashrc
+# per-directory environment loading, hooked in crumb's .bashrc tier-2 drop-ins
 direnv
 
 # Language runtimes are deliberately absent: mise owns those, pinned per-project
-# in ~/.config/mise/config.toml, not pacman.
+# in ~/.config/mise/config.toml (crumb's file), not pacman.
 
 # The KDE Breeze cursor, this machine's pointer since before quattro. Tracked
 # because the theme has to exist before .icons/default/index.theme and

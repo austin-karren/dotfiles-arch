@@ -185,7 +185,7 @@ elif ! $luks_root; then
 elif ! grep -q 'cryptdevice=' /proc/cmdline; then
   bad "boot contract" "encrypt hook active but the running cmdline has no cryptdevice=" \
     "the next initramfs rebuild will produce an image that cannot unlock root — the machine will not boot" \
-    "write $CRYPT_DROPIN (see ADR-0047), then rebuild: echo all | sudo /usr/share/libalpm/scripts/limine-mkinitcpio-install && sudo limine-update"
+    "write $CRYPT_DROPIN (see omarchy-desktop-on-cachyos ADR-0047), then rebuild: echo all | sudo /usr/share/libalpm/scripts/limine-mkinitcpio-install && sudo limine-update"
 else
   luks_uuid=$(sed -n 's/.*rd\.luks\.uuid=\([0-9a-fA-F-]*\).*/\1/p' /proc/cmdline)
   if [[ -f $CRYPT_DROPIN ]] && { [[ -z $luks_uuid ]] || grep -q "cryptdevice=UUID=$luks_uuid" "$CRYPT_DROPIN"; }; then
@@ -193,7 +193,7 @@ else
   else
     bad "boot contract" "cmdline carries cryptdevice= but $CRYPT_DROPIN is missing or names a different UUID" \
       "the next limine menu regeneration drops cryptdevice= and the boot after that cannot unlock root" \
-      "restore the drop-in with the root LUKS UUID (see ADR-0047)"
+      "restore the drop-in with the root LUKS UUID (see omarchy-desktop-on-cachyos ADR-0047)"
   fi
 fi
 

@@ -34,6 +34,14 @@ beat eight. Also deliberately not `pan`, which is a real package (a Usenet
 newsreader) in `cachyos-extra-znver4` and would collide if ever installed.
 _Avoid_: rice (the old name), shokupan (that is the rice, not the tool)
 
+**Crumb**:
+The dev config that travels — shell, git, mise, Zed — extracted 2026-08-19 to a
+private `crumb` repo and stowed separately (ADR-0002). Defined by what it may
+*not* know: no Omarchy, no Hyprland, no theme path, because it has to work on a
+machine with no desktop. It owns `.bashrc` and provides the two drop-in tiers
+this rice fills; it is not managed by `loaf`.
+_Avoid_: dotfiles, the shell repo, the portable half (say the name)
+
 **Omarchy**: The upstream desktop layer, installed as distro packages at
 `/usr/share/omarchy` — `omarchy-dev` and `omarchy-settings-dev` from the
 `[omarchy]` repo (omarchy-desktop-on-cachyos ADR-0035). `~/.local/share/omarchy`
@@ -58,7 +66,9 @@ _Avoid_: local, untracked, ignored
 **Identity file**:
 A machine-side file holding a name or email address, included by a tracked file
 that itself contains no identity. `~/.gitconfig.local` is the reference example;
-`~/.bashrc.local` is the same pattern for the shell.
+`~/.bashrc.local` is the same pattern for the shell. Both are included from
+Crumb's tracked files rather than this repo's since 2026-08-19; `~/.XCompose.local`
+is the rice's own instance of the term.
 _Avoid_: secrets file, private config
 
 **Base**: CachyOS: the kernel, the znver4 repos, the bootloader and snapper. The
