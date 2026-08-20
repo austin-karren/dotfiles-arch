@@ -1,19 +1,30 @@
 # shellcheck shell=bash
 # A sourced fragment, so there is no shebang for shellcheck to read the
-# dialect from — and the two files sourced below are machine state, not
-# repo inputs it can follow.
+# dialect from — and /etc/omarchy.conf is machine state, not a repo input it
+# can follow.
 # shellcheck disable=SC1091
 
-# The rice's Omarchy arm, extracted from .bashrc so the .bashrc itself can
-# become desktop-agnostic and live in crumb. Everything Omarchy-coupled stays
-# here; crumb knows nothing about Omarchy and only provides the seam that reads
-# this directory. The dependency points one way on purpose.
+# The rice's Omarchy arm, first tier — extracted from .bashrc so the .bashrc
+# itself can become desktop-agnostic and live in crumb. Everything
+# Omarchy-coupled stays in the rice; crumb knows nothing about Omarchy and only
+# provides the seam that reads this directory. The dependency points one way on
+# purpose.
 #
-# Numbered 00- because this is the FIRST tier: ~/.config/bash/env.d/*.sh is
-# sourced before the `[[ $- != *i* ]] && return` interactivity guard, so
-# `ssh box somecommand` — which runs no interactive shell — still gets
-# OMARCHY_PATH. Sourcing the pre-crumb .bashrc non-interactively left it unset,
-# where upstream's own bashrc yields /usr/share/omarchy.
+# TIER: ~/.config/bash/env.d/*.sh, sourced BEFORE crumb's
+# `[[ $- != *i* ]] && return`. Only the environment belongs here — the variable
+# is what a non-interactive shell needs. `ssh box somecommand` runs no
+# interactive shell, and sourcing the pre-crumb .bashrc that way left
+# OMARCHY_PATH unset where upstream's own bashrc yields /usr/share/omarchy.
+# This file is that fix.
+#
+# Numbered 00- because it must run before anything that reads OMARCHY_PATH,
+# which includes the second-tier .config/bash/50-omarchy-rc.sh that loads
+# Omarchy's interactive rc from under it.
+#
+# This is the same division upstream draws in /usr/share/omarchy/default/bashrc:
+# the environment above the interactivity guard, the rc below it. The aliases,
+# functions, completions and key bindings in that rc have no business running
+# in a non-interactive shell.
 
 # /etc/omarchy.conf is written by omarchy-dev-link. When absent, force the
 # package default instead of preserving a stale inherited dev-link value before
@@ -30,14 +41,3 @@ if [[ -f /etc/omarchy.conf ]]; then
 else
   export OMARCHY_PATH=/usr/share/omarchy
 fi
-
-# Guarded, which the .bashrc line this replaces was not: a bare
-# `source "$OMARCHY_PATH/default/bash/rc"` errors on every single shell when
-# Omarchy is absent, and a no-Omarchy machine is the whole reason crumb exists.
-# Guard shape copied from upstream's own /usr/share/omarchy/default/bashrc:
-#
-#   [[ -r /usr/share/omarchy/default/bash/env-bootstrap ]] && source /usr/share/omarchy/default/bash/env-bootstrap
-#
-# Recorded as a `watch` in packages/forks: this loads upstream's file whole and
-# depends on it continuing to exist under that name.
-[[ -r "$OMARCHY_PATH/default/bash/rc" ]] && source "$OMARCHY_PATH/default/bash/rc"

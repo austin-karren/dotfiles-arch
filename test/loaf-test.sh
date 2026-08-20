@@ -1040,79 +1040,122 @@ fi
 # The rice's .bashrc is being split: crumb takes the portable half and owns a
 # desktop-agnostic .bashrc that sources two tiers of drop-ins —
 # ~/.config/bash/env.d/*.sh BEFORE the `[[ $- != *i* ]] && return` guard, and
-# ~/.config/bash/*.sh after it. The rice keeps the Omarchy-coupled half, which
-# is this one drop-in. crumb knows nothing about Omarchy; the rice plugs into a
-# generic seam.
+# ~/.config/bash/*.sh after it. The rice keeps the Omarchy-coupled half; crumb
+# knows nothing about Omarchy and only provides the seam.
+#
+# The rice's half is split across BOTH tiers, the way upstream's own
+# default/bashrc divides them: the environment (OMARCHY_PATH) above the guard
+# because `ssh box somecommand` needs the variable, and the interactive rc
+# below it because aliases, functions, completions and key bindings have no
+# business in a non-interactive shell. Which tier a piece lands in is the thing
+# these tests hold — a file drifting across the guard is silent otherwise.
 #
 # Nothing here is the live cutover — the .bashrc stays tracked until a separate
 # gated step swaps the symlinks.
 
-seam=.config/bash/env.d/00-omarchy.sh
-assert_file_exists "seam: the Omarchy drop-in exists" "$ROOT/$seam"
+seam_env=.config/bash/env.d/00-omarchy.sh
+seam_rc=.config/bash/50-omarchy-rc.sh
 
-if bash -n "$ROOT/$seam" 2>/dev/null; then
-  pass "seam: the drop-in parses"
-else
-  fail "seam: the drop-in parses" "$(bash -n "$ROOT/$seam" 2>&1)"
-fi
+assert_file_exists "seam: the pre-guard OMARCHY_PATH drop-in exists" "$ROOT/$seam_env"
+assert_file_exists "seam: the post-guard rc drop-in exists" "$ROOT/$seam_rc"
 
-# The drop-in loads upstream's rc whole and depends on that path existing, so
-# it is a watch (ADR-0042). .bashrc had never been recorded here at all, which
-# is why its drift from upstream went unnoticed while the board read clean.
-assert_contains "seam: the drop-in is a recorded watch" \
-  "$(grep "^$seam " "$ROOT/packages/forks")" \
+for f in "$seam_env" "$seam_rc"; do
+  if bash -n "$ROOT/$f" 2>/dev/null; then
+    pass "seam: $f parses"
+  else
+    fail "seam: $f parses" "$(bash -n "$ROOT/$f" 2>&1)"
+  fi
+done
+
+# The watch belongs to the file that actually sources upstream's rc (ADR-0042).
+# .bashrc had never been recorded here at all, which is why its drift from
+# upstream went unnoticed while the board read clean.
+assert_contains "seam: the rc drop-in is a recorded watch" \
+  "$(grep "^$seam_rc " "$ROOT/packages/forks")" \
   "/usr/share/omarchy/default/bash/rc"
 assert_contains "seam: recorded as a watch, not a fork" \
-  "$(grep "^$seam " "$ROOT/packages/forks")" " watch"
+  "$(grep "^$seam_rc " "$ROOT/packages/forks")" " watch"
+# And not to the env tier, which reads machine state rather than a packaged
+# upstream file. A watch on the wrong half would send a re-verification at the
+# file that has nothing to re-verify.
+assert_equals "seam: the env tier carries no watch of its own" \
+  "$(grep -c "^$seam_env " "$ROOT/packages/forks")" "0"
 
-# The drop-in has to reach $HOME, so it must not be caught by the repo-only
+# Both drop-ins have to reach $HOME, so neither may be caught by the repo-only
 # ignore list. Stowed from the real repo into a throwaway home rather than
 # reasoning about the patterns, since what matters is what stow actually does.
 home=$(make_home)
 (cd "$ROOT" && stow --no-folding -t "$home" . 2>/dev/null)
-assert_symlink "seam: .config/bash/env.d reaches \$HOME" "$home/$seam"
+assert_symlink "seam: .config/bash/env.d reaches \$HOME" "$home/$seam_env"
+assert_symlink "seam: .config/bash reaches \$HOME" "$home/$seam_rc"
 
-# The guard, which is the whole reason this is a new file rather than a move.
-# Both the packaged root and /etc/omarchy.conf are rewritten to fixture paths,
-# so the run answers to the fixture rather than to whether the machine running
-# the suite has Omarchy installed or is dev-linked.
+# Behaviour. Both drop-ins are copied into the fixture with /usr/share/omarchy
+# and /etc/omarchy.conf rewritten to fixture paths, so the runs answer to the
+# fixture rather than to whether the machine running the suite has Omarchy
+# installed or is dev-linked.
 seam_fixture() {
-  local home=$1
-  sed -e "s|/usr/share/omarchy|$home/usr/share/omarchy|g" \
-    -e "s|/etc/omarchy.conf|$home/etc/omarchy.conf|g" \
-    "$ROOT/$seam" >"$home/seam.sh"
+  local home=$1 src dst
+  mkdir -p "$home/usr/share/omarchy"
+  for src in "$seam_env:env.sh" "$seam_rc:rc.sh"; do
+    dst=${src#*:}
+    sed -e "s|/usr/share/omarchy|$home/usr/share/omarchy|g" \
+      -e "s|/etc/omarchy.conf|$home/etc/omarchy.conf|g" \
+      "$ROOT/${src%%:*}" >"$home/$dst"
+  done
 }
 
-# rc absent: a bare `source` errors on every shell, which is exactly what a
-# machine without Omarchy would be. Nothing may be written to stderr.
+# The env tier's whole job: OMARCHY_PATH exported with no interactive shell in
+# sight, which is what `ssh box somecommand` gets. The pre-crumb .bashrc left
+# it unset because its Omarchy block sat below the interactivity guard.
 home=$(make_home)
-mkdir -p "$home/usr/share/omarchy"
 seam_fixture "$home"
-err=$(env -u OMARCHY_PATH bash -c "source '$home/seam.sh'" 2>&1 >/dev/null)
-assert_equals "seam: silent when Omarchy's rc is absent" "$err" ""
-
-# Still exports OMARCHY_PATH with the rc missing — the env tier's job is the
-# variable, and a remote `ssh box somecommand` needs it whether or not the
-# interactive rc is there to load.
 out=$(env -u OMARCHY_PATH bash -c \
-  "source '$home/seam.sh' 2>/dev/null; echo \${OMARCHY_PATH:-UNSET}")
-assert_equals "seam: exports OMARCHY_PATH non-interactively" \
+  "source '$home/env.sh' 2>/dev/null; echo \${OMARCHY_PATH:-UNSET}")
+assert_equals "seam: the env tier exports OMARCHY_PATH non-interactively" \
   "$out" "$home/usr/share/omarchy"
 
-# The other half: when rc IS there it is actually sourced. Without this the
-# silence test above would pass on a guard that never fires.
+# ...and nothing else. rc is present here, so a stray source in this tier would
+# show up — that is the regression the split exists to prevent, and it is
+# invisible in a shell that happens to be interactive.
 mkdir -p "$home/usr/share/omarchy/default/bash"
-echo 'echo SEAM-RC-SOURCED' >"$home/usr/share/omarchy/default/bash/rc"
-out=$(env -u OMARCHY_PATH bash -c "source '$home/seam.sh'" 2>/dev/null)
-assert_contains "seam: sources Omarchy's rc when it is present" "$out" "SEAM-RC-SOURCED"
+# The stub mirrors the shape that matters: upstream's rc ends in
+# `[[ $- == *i* ]] && bind -f ...`, so sourcing it non-interactively returns 1.
+# A stub that returned 0 would make the $? assertion below unfalsifiable.
+{
+  echo 'echo SEAM-RC-SOURCED'
+  echo '[[ $- == *i* ]] && :'
+} >"$home/usr/share/omarchy/default/bash/rc"
+out=$(env -u OMARCHY_PATH bash -c "source '$home/env.sh'" 2>/dev/null)
+assert_not_contains "seam: the env tier does not source Omarchy's rc" \
+  "$out" "SEAM-RC-SOURCED"
+# rc's last line is `[[ $- == *i* ]] && bind -f ...`, so sourcing it
+# non-interactively returns 1. Sourcing only the env tier must leave $? clean.
+env -u OMARCHY_PATH bash -c "source '$home/env.sh'" >/dev/null 2>&1
+assert_equals "seam: the env tier leaves \$? at 0" "$?" "0"
+
+# The rc tier, sourced the way crumb's .bashrc would: env tier first, this one
+# after the guard. Present rc must actually be loaded — without this the
+# silence test below would pass on a guard that never fires.
+out=$(env -u OMARCHY_PATH bash -c \
+  "source '$home/env.sh'; source '$home/rc.sh'" 2>/dev/null)
+assert_contains "seam: the rc tier sources Omarchy's rc when present" \
+  "$out" "SEAM-RC-SOURCED"
+
+# rc absent: a bare `source` errors on every shell, which is exactly what a
+# machine without Omarchy is. Nothing may reach stderr.
+home=$(make_home)
+seam_fixture "$home"
+err=$(env -u OMARCHY_PATH bash -c \
+  "source '$home/env.sh'; source '$home/rc.sh'" 2>&1 >/dev/null)
+assert_equals "seam: the rc tier is silent when Omarchy's rc is absent" "$err" ""
 
 # The board resolves a manifest path against either checkout. Every entry used
 # to be a plugins-repo path, so a rice-repo path read as missing from the repo.
 home=$(make_home)
-mkdir -p "$home/shokupan/.config/bash/env.d"
-echo "# drop-in" >"$home/shokupan/.config/bash/env.d/00-omarchy.sh"
+mkdir -p "$home/shokupan/.config/bash"
+echo "# drop-in" >"$home/shokupan/.config/bash/50-omarchy-rc.sh"
 echo "upstream v1" >"$home/upstream-rc"
-printf '.config/bash/env.d/00-omarchy.sh %s %s watch\n' "$home/upstream-rc" \
+printf '.config/bash/50-omarchy-rc.sh %s %s watch\n' "$home/upstream-rc" \
   "$(sha256sum "$home/upstream-rc" | awk '{print $1}')" \
   >"$home/shokupan/packages/forks"
 out=$(loaf_run "$home" forks)
