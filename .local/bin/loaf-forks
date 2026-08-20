@@ -24,9 +24,11 @@ set -uo pipefail
 
 LOAF_HOME="${LOAF_HOME:-$HOME}"
 LOAF_ROOT="${LOAF_ROOT:-$LOAF_HOME/shokupan}"
-# The forked files live in the plugins repo since the 2026-08-18 split; the
-# board stays here because it is loaf's to run. Paths in the manifest are
-# relative to that checkout, not to this repo.
+# Most forked files live in the plugins repo since the 2026-08-18 split; the
+# board stays here because it is loaf's to run. A manifest path is relative to
+# one of the two checkouts and resolved against whichever holds it — the
+# plugins repo for hosted QML, this repo for the rice's own files (the bash
+# drop-in that loads upstream's rc is one).
 PLUGINS_ROOT="${PLUGINS_ROOT:-$LOAF_HOME/.local/share/shokupan-plugins}"
 MANIFEST="$LOAF_ROOT/packages/forks"
 
@@ -52,9 +54,20 @@ fi
 problems=0
 out=""
 
+# Where a manifest path lives. Both roots are searched rather than the path
+# carrying its own root, so the manifest stays readable and a file moving
+# between the two checkouts does not need a re-record.
+resolve_rice_path() {
+  local candidate
+  for candidate in "$PLUGINS_ROOT/$1" "$LOAF_ROOT/$1"; do
+    [[ -e $candidate ]] && { printf '%s' "$candidate"; return 0; }
+  done
+  return 1
+}
+
 while read -r rice_path upstream_path recorded_sha mode; do
   [[ -n ${recorded_sha:-} ]] || continue
-  if [[ ! -e $PLUGINS_ROOT/$rice_path ]]; then
+  if ! resolve_rice_path "$rice_path" >/dev/null; then
     problems=$((problems + 1))
     out+="✗ $rice_path — rice file missing from the repo"$'\n'
     continue

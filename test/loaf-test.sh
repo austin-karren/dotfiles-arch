@@ -1034,6 +1034,95 @@ else
 fi
 
 # ---------------------------------------------------------
+# bash seam
+# ---------------------------------------------------------
+#
+# The rice's .bashrc is being split: crumb takes the portable half and owns a
+# desktop-agnostic .bashrc that sources two tiers of drop-ins —
+# ~/.config/bash/env.d/*.sh BEFORE the `[[ $- != *i* ]] && return` guard, and
+# ~/.config/bash/*.sh after it. The rice keeps the Omarchy-coupled half, which
+# is this one drop-in. crumb knows nothing about Omarchy; the rice plugs into a
+# generic seam.
+#
+# Nothing here is the live cutover — the .bashrc stays tracked until a separate
+# gated step swaps the symlinks.
+
+seam=.config/bash/env.d/00-omarchy.sh
+assert_file_exists "seam: the Omarchy drop-in exists" "$ROOT/$seam"
+
+if bash -n "$ROOT/$seam" 2>/dev/null; then
+  pass "seam: the drop-in parses"
+else
+  fail "seam: the drop-in parses" "$(bash -n "$ROOT/$seam" 2>&1)"
+fi
+
+# The drop-in loads upstream's rc whole and depends on that path existing, so
+# it is a watch (ADR-0042). .bashrc had never been recorded here at all, which
+# is why its drift from upstream went unnoticed while the board read clean.
+assert_contains "seam: the drop-in is a recorded watch" \
+  "$(grep "^$seam " "$ROOT/packages/forks")" \
+  "/usr/share/omarchy/default/bash/rc"
+assert_contains "seam: recorded as a watch, not a fork" \
+  "$(grep "^$seam " "$ROOT/packages/forks")" " watch"
+
+# The drop-in has to reach $HOME, so it must not be caught by the repo-only
+# ignore list. Stowed from the real repo into a throwaway home rather than
+# reasoning about the patterns, since what matters is what stow actually does.
+home=$(make_home)
+(cd "$ROOT" && stow --no-folding -t "$home" . 2>/dev/null)
+assert_symlink "seam: .config/bash/env.d reaches \$HOME" "$home/$seam"
+
+# The guard, which is the whole reason this is a new file rather than a move.
+# Both the packaged root and /etc/omarchy.conf are rewritten to fixture paths,
+# so the run answers to the fixture rather than to whether the machine running
+# the suite has Omarchy installed or is dev-linked.
+seam_fixture() {
+  local home=$1
+  sed -e "s|/usr/share/omarchy|$home/usr/share/omarchy|g" \
+    -e "s|/etc/omarchy.conf|$home/etc/omarchy.conf|g" \
+    "$ROOT/$seam" >"$home/seam.sh"
+}
+
+# rc absent: a bare `source` errors on every shell, which is exactly what a
+# machine without Omarchy would be. Nothing may be written to stderr.
+home=$(make_home)
+mkdir -p "$home/usr/share/omarchy"
+seam_fixture "$home"
+err=$(env -u OMARCHY_PATH bash -c "source '$home/seam.sh'" 2>&1 >/dev/null)
+assert_equals "seam: silent when Omarchy's rc is absent" "$err" ""
+
+# Still exports OMARCHY_PATH with the rc missing — the env tier's job is the
+# variable, and a remote `ssh box somecommand` needs it whether or not the
+# interactive rc is there to load.
+out=$(env -u OMARCHY_PATH bash -c \
+  "source '$home/seam.sh' 2>/dev/null; echo \${OMARCHY_PATH:-UNSET}")
+assert_equals "seam: exports OMARCHY_PATH non-interactively" \
+  "$out" "$home/usr/share/omarchy"
+
+# The other half: when rc IS there it is actually sourced. Without this the
+# silence test above would pass on a guard that never fires.
+mkdir -p "$home/usr/share/omarchy/default/bash"
+echo 'echo SEAM-RC-SOURCED' >"$home/usr/share/omarchy/default/bash/rc"
+out=$(env -u OMARCHY_PATH bash -c "source '$home/seam.sh'" 2>/dev/null)
+assert_contains "seam: sources Omarchy's rc when it is present" "$out" "SEAM-RC-SOURCED"
+
+# The board resolves a manifest path against either checkout. Every entry used
+# to be a plugins-repo path, so a rice-repo path read as missing from the repo.
+home=$(make_home)
+mkdir -p "$home/shokupan/.config/bash/env.d"
+echo "# drop-in" >"$home/shokupan/.config/bash/env.d/00-omarchy.sh"
+echo "upstream v1" >"$home/upstream-rc"
+printf '.config/bash/env.d/00-omarchy.sh %s %s watch\n' "$home/upstream-rc" \
+  "$(sha256sum "$home/upstream-rc" | awk '{print $1}')" \
+  >"$home/shokupan/packages/forks"
+out=$(loaf_run "$home" forks)
+status=$?
+assert_not_contains "forks: finds a manifest path in the rice repo" \
+  "$out" "missing from the repo"
+assert_equals "forks: a rice-repo watch exits 0" "$status" "0"
+
+
+# ---------------------------------------------------------
 # lint
 # ---------------------------------------------------------
 #
