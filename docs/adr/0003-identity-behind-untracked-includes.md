@@ -59,3 +59,20 @@ itself.
 
 `~/.XCompose` / `~/.XCompose.local` did not move; `.XCompose` stayed in the
 rice, so that paragraph reads as written.
+
+## Amendment, 2026-08-20 — `crumb` went public
+
+The amendment above says "`crumb` being private does not change that". That
+sentence was true when written and is left standing as the record of the
+2026-08-19 reasoning; `crumb` was flipped **public** on 2026-08-20 and now
+carries a description, topics and an MIT LICENSE.
+
+The decision is unaffected, and in the one direction that matters it is
+strengthened: privateness was never what kept identity out of `crumb`'s tracked
+files — the include pattern was, and `crumb` follows it. A private repo remains
+a rejected alternative here, and no tree that holds a shell or git config is
+unpublished any more: of the three self-stowing trees in ADR-0002, `shokupan`
+and `crumb` are both public and only `claude-config` is private. The rule "no
+tracked file may contain a name or email address" is what protects the two that
+are published, and it now protects the `.bashrc` and git config as well as the
+rice.

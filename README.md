@@ -17,8 +17,9 @@ just the term for a customized desktop, so the bread is a joke rather than a
 category error.
 
 The dev config that does **not** need a desktop — shell, git, mise, Zed — left
-this repo on 2026-08-19 for a fourth one, `crumb` (private, ADR-0002). It stows
-itself and must work on a machine with no Omarchy at all. If you are looking for
+this repo on 2026-08-19 for a fourth one,
+[crumb](https://github.com/austin-karren/crumb) (ADR-0002), public and MIT since
+2026-08-20. It stows itself and must work on a machine with no Omarchy at all. If you are looking for
 `.bashrc`, `.config/git/config`, `.config/mise/config.toml` or `.config/zed/`,
 they live there now; `crumb`'s own README documents them. What stayed here is the
 Omarchy half of the shell seam — see "The bash seam" below.
