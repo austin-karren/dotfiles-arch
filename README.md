@@ -17,8 +17,9 @@ just the term for a customized desktop, so the bread is a joke rather than a
 category error.
 
 The dev config that does **not** need a desktop — shell, git, mise, Zed — left
-this repo on 2026-08-19 for a fourth one, `crumb` (private, ADR-0002). It stows
-itself and must work on a machine with no Omarchy at all. If you are looking for
+this repo on 2026-08-19 for a fourth one,
+[crumb](https://github.com/austin-karren/crumb) (ADR-0002), public and MIT since
+2026-08-20. It stows itself and must work on a machine with no Omarchy at all. If you are looking for
 `.bashrc`, `.config/git/config`, `.config/mise/config.toml` or `.config/zed/`,
 they live there now; `crumb`'s own README documents them. What stayed here is the
 Omarchy half of the shell seam — see "The bash seam" below.
@@ -112,14 +113,23 @@ contributes the Omarchy half:
 
 | Drop-in | Tier | What it does |
 |---|---|---|
-| `.config/bash/env.d/00-omarchy.sh` | above the guard | Exports `OMARCHY_PATH`, so `ssh box somecommand` sees it |
+| `.config/bash/env.d/00-omarchy.sh` | above the guard | Exports `OMARCHY_PATH`, so non-interactive shells that read `~/.bashrc` see it |
 | `.config/bash/50-omarchy-rc.sh` | below the guard | Sources Omarchy's `default/bash/rc` for interactive shells |
 
 Which tier a piece lands in is load-bearing: something above the guard that
 belongs below runs in non-interactive shells, and something below the guard that
-belongs above is simply unset over `ssh box somecommand` — a silent failure
-either way. `test/loaf-test.sh` holds both tiers. `crumb` ADR-0001 records the
-seam itself.
+belongs above is unset in the non-interactive shells that do read `~/.bashrc` —
+a silent failure either way. Those are the shells whose fd 0 is a connected
+socket; `systemd-run --user --pipe` is the measured case.
+
+`ssh box somecommand` is **not** one of them. That path reads no startup file on
+this machine, so neither tier runs and tier placement decides nothing about it —
+`OMARCHY_PATH` is simply unset there, whatever the seam does. It takes two
+build-time conditions in two different packages, and it is accepted rather than
+fixed because remote access here is Tailscale SSH (ADR-0016). ADR-0049 has the
+mechanism and the reasoning; the record used to claim the opposite.
+
+`test/loaf-test.sh` holds both tiers. `crumb` ADR-0001 records the seam itself.
 
 ## What's here
 

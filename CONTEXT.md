@@ -36,7 +36,8 @@ _Avoid_: rice (the old name), shokupan (that is the rice, not the tool)
 
 **Crumb**:
 The dev config that travels — shell, git, mise, Zed — extracted 2026-08-19 to a
-private `crumb` repo and stowed separately (ADR-0002). Defined by what it may
+separate `crumb` repo and stowed separately (ADR-0002); public and MIT since
+2026-08-20. Defined by what it may
 *not* know: no Omarchy, no Hyprland, no theme path, because it has to work on a
 machine with no desktop. It owns `.bashrc` and provides the two drop-in tiers
 this rice fills; it is not managed by `loaf`.
