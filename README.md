@@ -112,14 +112,23 @@ contributes the Omarchy half:
 
 | Drop-in | Tier | What it does |
 |---|---|---|
-| `.config/bash/env.d/00-omarchy.sh` | above the guard | Exports `OMARCHY_PATH`, so `ssh box somecommand` sees it |
+| `.config/bash/env.d/00-omarchy.sh` | above the guard | Exports `OMARCHY_PATH`, so non-interactive shells that read `~/.bashrc` see it |
 | `.config/bash/50-omarchy-rc.sh` | below the guard | Sources Omarchy's `default/bash/rc` for interactive shells |
 
 Which tier a piece lands in is load-bearing: something above the guard that
 belongs below runs in non-interactive shells, and something below the guard that
-belongs above is simply unset over `ssh box somecommand` — a silent failure
-either way. `test/loaf-test.sh` holds both tiers. `crumb` ADR-0001 records the
-seam itself.
+belongs above is unset in the non-interactive shells that do read `~/.bashrc` —
+a silent failure either way. Those are the shells whose fd 0 is a connected
+socket; `systemd-run --user --pipe` is the measured case.
+
+`ssh box somecommand` is **not** one of them. That path reads no startup file on
+this machine, so neither tier runs and tier placement decides nothing about it —
+`OMARCHY_PATH` is simply unset there, whatever the seam does. It takes two
+build-time conditions in two different packages, and it is accepted rather than
+fixed because remote access here is Tailscale SSH (ADR-0016). ADR-0049 has the
+mechanism and the reasoning; the record used to claim the opposite.
+
+`test/loaf-test.sh` holds both tiers. `crumb` ADR-0001 records the seam itself.
 
 ## What's here
 

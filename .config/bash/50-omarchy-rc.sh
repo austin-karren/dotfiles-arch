@@ -14,8 +14,13 @@
 #
 #   - None of what rc pulls in — envs, shell, aliases, functions, init, and
 #     `bind -f inputrc` — has any business in a non-interactive shell. Pre-guard
-#     it would run `mise activate bash`, `zoxide init` and bash-completion on
-#     every `ssh box somecommand` for ~28 ms it never needed.
+#     it would run `mise activate bash`, `zoxide init` and bash-completion for
+#     ~28 ms in every shell that reads ~/.bashrc without being interactive —
+#     any shell whose fd 0 is a connected socket, `systemd-run --user --pipe`
+#     being the measured case — and in the non-interactive login shells that
+#     reach it through /etc/profile.d. Not `ssh box somecommand`: that path
+#     reads no startup file at all here, so there is nothing to skip
+#     (shokupan ADR-0049). The cost is real; the example used to be wrong.
 #   - rc's last line is `[[ $- == *i* ]] && bind -f ...`, so sourcing it
 #     non-interactively returns 1. Pre-guard that left $? at 1 for whatever
 #     crumb's drop-in loop did next.
@@ -51,9 +56,12 @@
 # — where .config/bash/env.d/00-omarchy.sh ends on a bare `:` and returns 0.
 # The two tiers are not in the same position:
 #
-#   - Tier 1 runs in every shell, `ssh box somecommand` included, and what
-#     follows crumb's tier-1 loop can read $?. A 1 escaping there is the trap
-#     the `:` in that file exists to close.
+#   - Tier 1 runs in every shell that reads ~/.bashrc — interactive shells and
+#     socket-stdin non-interactive ones alike — and what follows crumb's tier-1
+#     loop can read $?. A 1 escaping there is the trap the `:` in that file
+#     exists to close. (It does not run over `ssh box somecommand`; nothing
+#     does. That path is irrelevant to this argument, which only needs shells
+#     where a stray 1 has somewhere to escape to. See shokupan ADR-0049.)
 #   - Tier 2 runs only in interactive shells, and crumb's tier-2 loop is
 #     followed by `[[ $_crumb_nullglob == off ]] && shopt -u nullglob` and then
 #     `unset -v _crumb_f _crumb_nullglob`. The `unset` succeeds

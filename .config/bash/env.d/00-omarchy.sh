@@ -12,10 +12,16 @@
 #
 # TIER: ~/.config/bash/env.d/*.sh, sourced BEFORE crumb's
 # `[[ $- != *i* ]] && return`. Only the environment belongs here — the variable
-# is what a non-interactive shell needs. `ssh box somecommand` runs no
-# interactive shell, and sourcing the pre-crumb .bashrc that way left
-# OMARCHY_PATH unset where upstream's own bashrc yields /usr/share/omarchy.
-# This file is that fix.
+# is what a non-interactive shell needs, and the non-interactive shells that
+# reach this file are the ones whose fd 0 is a connected socket. Bash sources
+# ~/.bashrc for those without any `-i`; `systemd-run --user --pipe` is the
+# measured live case. Pre-guard is what gets OMARCHY_PATH into them.
+#
+# It is NOT what gets OMARCHY_PATH into `ssh box somecommand`. That path reads
+# no startup file here at all, so neither tier runs and tier placement decides
+# nothing about it — see shokupan ADR-0049 for the mechanism (this bash lacks
+# SSH_SOURCE_BASHRC and this sshd is built with USE_PIPES, so fd 0 is a pipe).
+# `PATH` still arrives there, via Omarchy's pam_env line, not via this file.
 #
 # Numbered 00- because it must run before anything that reads OMARCHY_PATH,
 # which includes the second-tier .config/bash/50-omarchy-rc.sh that loads
@@ -42,6 +48,10 @@
 # own env.d/10-pnpm.sh and env.d/20-local-bin.sh prepend after this file runs.
 # On a machine carrying Omarchy's PAM PATH line (install/config/ssh-command-path.sh)
 # the two appends are already satisfied and PATH comes out byte-identical.
+# The two are about disjoint shell paths, though, and neither backs the other up:
+# this file runs only where ~/.bashrc is read, and the PAM line exists precisely
+# for the path where it is not. Agreeing on PATH is a coincidence worth having,
+# not a fallback.
 #
 # Guard shape copied from upstream's own /etc/skel/.bashrc. The trailing `:` is
 # ours: this is the last line of a drop-in that crumb's tier-1 loop sources, and
@@ -57,7 +67,9 @@
 # returns 1. It is safe there because crumb's tier-2 loop is followed by a
 # `[[ ]]` test and an `unset -v`, and the `unset` succeeds unconditionally — $?
 # is 0 again before any caller sees the 1. This tier has no such backstop: it is
-# sourced by every shell, and its 1 would escape into whatever crumb does next.
+# sourced by every shell that reads ~/.bashrc — interactive and socket-stdin
+# alike, not just interactive ones — and its 1 would escape into whatever crumb
+# does next.
 # So the `:` belongs here and its absence belongs there. Do not "fix" either
 # file to match the other; test/loaf-test.sh pins the no-Omarchy exit status of
 # both tiers so that either change has to be argued for. The full reasoning is
