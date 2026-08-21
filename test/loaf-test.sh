@@ -549,6 +549,46 @@ else
   pass "heal: the launcher is gone afterwards"
 fi
 
+# The TRACKED manifest, not the fixture's. make_home writes its own
+# packages/removed.webapps holding only HEY, so every test above passes no
+# matter what the real one says — Basecamp could be deleted from the tracked
+# list and the whole suite would stay green. It was, and it did.
+#
+# Basecamp is an Omarchy default web app (upstream ships
+# applications/Basecamp.desktop) that this machine has decided against, and
+# omarchy-refresh-applications copies it back on every update. The manifest
+# entry is the only thing that keeps it gone, so the entry itself is pinned.
+tracked_removed=$ROOT/packages/removed.webapps
+assert_file_exists "debloat: the tracked manifest is present" "$tracked_removed"
+if grep -qx 'Basecamp' "$tracked_removed"; then
+  pass "debloat: the tracked manifest keeps Basecamp removed"
+else
+  fail "debloat: the tracked manifest keeps Basecamp removed" \
+    "Basecamp is not listed in packages/removed.webapps" \
+    "without it, every Omarchy update restores ~/.local/share/applications/Basecamp.desktop"
+fi
+
+# And that the entry actually drives a removal, rather than merely being a
+# string in a file. Driven by the tracked manifest copied into the fixture, so
+# this fails if Basecamp is dropped from it OR if debloat stops acting on it.
+home=$(make_home)
+cp "$tracked_removed" "$home/shokupan/packages/removed.webapps"
+mkdir -p "$home/.local/share/applications" "$home/.local/share/icons/hicolor/256x256/apps"
+touch "$home/.local/share/applications/Basecamp.desktop"
+touch "$home/.local/share/icons/hicolor/256x256/apps/basecamp.png"
+out=$(loaf_run "$home" debloat)
+assert_contains "debloat: the tracked manifest removes Basecamp" "$out" "removed Basecamp"
+if [[ -e $home/.local/share/applications/Basecamp.desktop ]]; then
+  fail "debloat: Basecamp's launcher is gone"
+else
+  pass "debloat: Basecamp's launcher is gone"
+fi
+if [[ -e $home/.local/share/icons/hicolor/256x256/apps/basecamp.png ]]; then
+  fail "debloat: Basecamp's icon goes with it"
+else
+  pass "debloat: Basecamp's icon goes with it"
+fi
+
 # ---------------------------------------------------------
 # forks
 # ---------------------------------------------------------
