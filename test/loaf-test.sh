@@ -209,6 +209,15 @@ printf '%s' "${STUB_HYPR_ERRORS:-}"
 STUB
 chmod +x "$BUILD/stub/hyprctl"
 
+# Stubbed udevadm, so a test that exercises loaf-install's qmk step cannot
+# reload udev rules on the machine running the suite. Recorded, not performed,
+# so a test can assert the reload WAS asked for.
+cat >"$BUILD/stub/udevadm" <<'STUB'
+#!/bin/bash
+echo "udevadm $*" >>"${STUB_LOG:-/dev/null}"
+STUB
+chmod +x "$BUILD/stub/udevadm"
+
 # Stubbed sudo: loaf-install prefixes its pacman calls with it when not root.
 # Exec the command as-is, so the stubbed pacman is still what runs.
 printf '#!/bin/bash\nexec "$@"\n' >"$BUILD/stub/sudo"
@@ -231,6 +240,8 @@ loaf_run() {
     PACMAN_CONF="$home/etc/pacman.conf" \
     MIRRORLIST="$home/etc/pacman.d/mirrorlist" \
     NM_CONF="$home/etc/NetworkManager.conf" \
+    QMK_RULES="$home/etc/udev/rules.d/50-qmk.rules" \
+    QMK_PKG_RULES="$home/usr/lib/udev/rules.d/50-qmk.rules" \
     STUB_ABSENT="${STUB_ABSENT:-}" \
     STUB_LOG="${STUB_LOG:-}" \
     XDG_STATE_HOME="$home/.local/state" \
@@ -549,6 +560,46 @@ else
   pass "heal: the launcher is gone afterwards"
 fi
 
+# The TRACKED manifest, not the fixture's. make_home writes its own
+# packages/removed.webapps holding only HEY, so every test above passes no
+# matter what the real one says — Basecamp could be deleted from the tracked
+# list and the whole suite would stay green. It was, and it did.
+#
+# Basecamp is an Omarchy default web app (upstream ships
+# applications/Basecamp.desktop) that this machine has decided against, and
+# omarchy-refresh-applications copies it back on every update. The manifest
+# entry is the only thing that keeps it gone, so the entry itself is pinned.
+tracked_removed=$ROOT/packages/removed.webapps
+assert_file_exists "debloat: the tracked manifest is present" "$tracked_removed"
+if grep -qx 'Basecamp' "$tracked_removed"; then
+  pass "debloat: the tracked manifest keeps Basecamp removed"
+else
+  fail "debloat: the tracked manifest keeps Basecamp removed" \
+    "Basecamp is not listed in packages/removed.webapps" \
+    "without it, every Omarchy update restores ~/.local/share/applications/Basecamp.desktop"
+fi
+
+# And that the entry actually drives a removal, rather than merely being a
+# string in a file. Driven by the tracked manifest copied into the fixture, so
+# this fails if Basecamp is dropped from it OR if debloat stops acting on it.
+home=$(make_home)
+cp "$tracked_removed" "$home/shokupan/packages/removed.webapps"
+mkdir -p "$home/.local/share/applications" "$home/.local/share/icons/hicolor/256x256/apps"
+touch "$home/.local/share/applications/Basecamp.desktop"
+touch "$home/.local/share/icons/hicolor/256x256/apps/basecamp.png"
+out=$(loaf_run "$home" debloat)
+assert_contains "debloat: the tracked manifest removes Basecamp" "$out" "removed Basecamp"
+if [[ -e $home/.local/share/applications/Basecamp.desktop ]]; then
+  fail "debloat: Basecamp's launcher is gone"
+else
+  pass "debloat: Basecamp's launcher is gone"
+fi
+if [[ -e $home/.local/share/icons/hicolor/256x256/apps/basecamp.png ]]; then
+  fail "debloat: Basecamp's icon goes with it"
+else
+  pass "debloat: Basecamp's icon goes with it"
+fi
+
 # ---------------------------------------------------------
 # forks
 # ---------------------------------------------------------
@@ -825,6 +876,60 @@ out=$(STUB_ABSENT=bat STUB_LOG="$home/pacman.log" loaf_run "$home" install)
 assert_contains "install: installs missing chosen packages" "$out" "installing 1 chosen package(s)"
 assert_contains "install: hands pacman the missing package" \
   "$(cat "$home/pacman.log" 2>/dev/null)" "pacman -S --needed --noconfirm bat"
+
+# Step 4a's qmk udev rule. udev resolves same-named rules files by directory
+# precedence, so anything in /etc/udev/rules.d SHADOWS /usr/lib/udev/rules.d
+# outright. qmk 1.2.0-3 ships its own 50-qmk.rules under /usr/lib, and the old
+# gate ("write ours if /etc has nothing") therefore manufactured an unowned
+# file on every fresh machine that overrode the packaged one. Gated on the
+# packaged file now.
+#
+# The three fixtures below build the packaged rule and the /etc one explicitly,
+# because the gate is entirely about which of those two exist.
+
+# The packaged rule is there: hands off, and nothing lands in /etc.
+home=$(make_home)
+printf 'ATTRS{idVendor}=="fixture"\n' >"$home/shokupan/packages/qmk-udev.rules"
+mkdir -p "$home/etc/udev/rules.d" "$home/usr/lib/udev/rules.d"
+printf '# shipped by qmk\n' >"$home/usr/lib/udev/rules.d/50-qmk.rules"
+out=$(STUB_LOG="$home/udev.log" loaf_run "$home" install)
+assert_contains "install: leaves the qmk rule to pacman when the package ships one" \
+  "$out" "leaving it to pacman"
+if [[ -e $home/etc/udev/rules.d/50-qmk.rules ]]; then
+  fail "install: writes no /etc rule that would shadow the packaged one" \
+    "created $home/etc/udev/rules.d/50-qmk.rules over the packaged copy"
+else
+  pass "install: writes no /etc rule that would shadow the packaged one"
+fi
+assert_not_contains "install: does not reload udev when it changed nothing" \
+  "$(cat "$home/udev.log" 2>/dev/null)" "udevadm control"
+
+# Nothing packaged: the rice still provides the rule, which is why it carries a
+# copy at all. The other half of the gate — without this, "fixed" could just
+# mean "never installs".
+home=$(make_home)
+printf 'ATTRS{idVendor}=="fixture"\n' >"$home/shokupan/packages/qmk-udev.rules"
+mkdir -p "$home/etc/udev/rules.d"
+out=$(STUB_LOG="$home/udev.log" loaf_run "$home" install)
+assert_contains "install: installs the qmk rule when nothing packaged provides one" \
+  "$out" "installing $home/etc/udev/rules.d/50-qmk.rules"
+assert_file_exists "install: the qmk rule lands in /etc" \
+  "$home/etc/udev/rules.d/50-qmk.rules"
+assert_contains "install: reloads udev after writing the rule" \
+  "$(cat "$home/udev.log" 2>/dev/null)" "udevadm control --reload-rules"
+
+# The state this machine is in: both files present. Named out loud rather than
+# reported as "already present", and left alone — removing it needs root.
+home=$(make_home)
+printf 'ATTRS{idVendor}=="fixture"\n' >"$home/shokupan/packages/qmk-udev.rules"
+mkdir -p "$home/etc/udev/rules.d" "$home/usr/lib/udev/rules.d"
+printf '# shipped by qmk\n' >"$home/usr/lib/udev/rules.d/50-qmk.rules"
+printf '# unowned, ours\n' >"$home/etc/udev/rules.d/50-qmk.rules"
+out=$(loaf_run "$home" install)
+assert_contains "install: names an /etc rule that shadows the packaged one" \
+  "$out" "shadows the packaged rule"
+assert_equals "install: leaves the shadowing rule in place for a human" \
+  "$(cat "$home/etc/udev/rules.d/50-qmk.rules")" "# unowned, ours"
 
 # A linked git worktree. `.git` there is a FILE holding a `gitdir:` pointer, not
 # a directory — install used to test for the directory and refuse the tree as no
