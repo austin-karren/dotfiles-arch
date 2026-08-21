@@ -209,6 +209,15 @@ printf '%s' "${STUB_HYPR_ERRORS:-}"
 STUB
 chmod +x "$BUILD/stub/hyprctl"
 
+# Stubbed udevadm, so a test that exercises loaf-install's qmk step cannot
+# reload udev rules on the machine running the suite. Recorded, not performed,
+# so a test can assert the reload WAS asked for.
+cat >"$BUILD/stub/udevadm" <<'STUB'
+#!/bin/bash
+echo "udevadm $*" >>"${STUB_LOG:-/dev/null}"
+STUB
+chmod +x "$BUILD/stub/udevadm"
+
 # Stubbed sudo: loaf-install prefixes its pacman calls with it when not root.
 # Exec the command as-is, so the stubbed pacman is still what runs.
 printf '#!/bin/bash\nexec "$@"\n' >"$BUILD/stub/sudo"
@@ -231,6 +240,8 @@ loaf_run() {
     PACMAN_CONF="$home/etc/pacman.conf" \
     MIRRORLIST="$home/etc/pacman.d/mirrorlist" \
     NM_CONF="$home/etc/NetworkManager.conf" \
+    QMK_RULES="$home/etc/udev/rules.d/50-qmk.rules" \
+    QMK_PKG_RULES="$home/usr/lib/udev/rules.d/50-qmk.rules" \
     STUB_ABSENT="${STUB_ABSENT:-}" \
     STUB_LOG="${STUB_LOG:-}" \
     XDG_STATE_HOME="$home/.local/state" \
@@ -865,6 +876,60 @@ out=$(STUB_ABSENT=bat STUB_LOG="$home/pacman.log" loaf_run "$home" install)
 assert_contains "install: installs missing chosen packages" "$out" "installing 1 chosen package(s)"
 assert_contains "install: hands pacman the missing package" \
   "$(cat "$home/pacman.log" 2>/dev/null)" "pacman -S --needed --noconfirm bat"
+
+# Step 4a's qmk udev rule. udev resolves same-named rules files by directory
+# precedence, so anything in /etc/udev/rules.d SHADOWS /usr/lib/udev/rules.d
+# outright. qmk 1.2.0-3 ships its own 50-qmk.rules under /usr/lib, and the old
+# gate ("write ours if /etc has nothing") therefore manufactured an unowned
+# file on every fresh machine that overrode the packaged one. Gated on the
+# packaged file now.
+#
+# The three fixtures below build the packaged rule and the /etc one explicitly,
+# because the gate is entirely about which of those two exist.
+
+# The packaged rule is there: hands off, and nothing lands in /etc.
+home=$(make_home)
+printf 'ATTRS{idVendor}=="fixture"\n' >"$home/shokupan/packages/qmk-udev.rules"
+mkdir -p "$home/etc/udev/rules.d" "$home/usr/lib/udev/rules.d"
+printf '# shipped by qmk\n' >"$home/usr/lib/udev/rules.d/50-qmk.rules"
+out=$(STUB_LOG="$home/udev.log" loaf_run "$home" install)
+assert_contains "install: leaves the qmk rule to pacman when the package ships one" \
+  "$out" "leaving it to pacman"
+if [[ -e $home/etc/udev/rules.d/50-qmk.rules ]]; then
+  fail "install: writes no /etc rule that would shadow the packaged one" \
+    "created $home/etc/udev/rules.d/50-qmk.rules over the packaged copy"
+else
+  pass "install: writes no /etc rule that would shadow the packaged one"
+fi
+assert_not_contains "install: does not reload udev when it changed nothing" \
+  "$(cat "$home/udev.log" 2>/dev/null)" "udevadm control"
+
+# Nothing packaged: the rice still provides the rule, which is why it carries a
+# copy at all. The other half of the gate — without this, "fixed" could just
+# mean "never installs".
+home=$(make_home)
+printf 'ATTRS{idVendor}=="fixture"\n' >"$home/shokupan/packages/qmk-udev.rules"
+mkdir -p "$home/etc/udev/rules.d"
+out=$(STUB_LOG="$home/udev.log" loaf_run "$home" install)
+assert_contains "install: installs the qmk rule when nothing packaged provides one" \
+  "$out" "installing $home/etc/udev/rules.d/50-qmk.rules"
+assert_file_exists "install: the qmk rule lands in /etc" \
+  "$home/etc/udev/rules.d/50-qmk.rules"
+assert_contains "install: reloads udev after writing the rule" \
+  "$(cat "$home/udev.log" 2>/dev/null)" "udevadm control --reload-rules"
+
+# The state this machine is in: both files present. Named out loud rather than
+# reported as "already present", and left alone — removing it needs root.
+home=$(make_home)
+printf 'ATTRS{idVendor}=="fixture"\n' >"$home/shokupan/packages/qmk-udev.rules"
+mkdir -p "$home/etc/udev/rules.d" "$home/usr/lib/udev/rules.d"
+printf '# shipped by qmk\n' >"$home/usr/lib/udev/rules.d/50-qmk.rules"
+printf '# unowned, ours\n' >"$home/etc/udev/rules.d/50-qmk.rules"
+out=$(loaf_run "$home" install)
+assert_contains "install: names an /etc rule that shadows the packaged one" \
+  "$out" "shadows the packaged rule"
+assert_equals "install: leaves the shadowing rule in place for a human" \
+  "$(cat "$home/etc/udev/rules.d/50-qmk.rules")" "# unowned, ours"
 
 # A linked git worktree. `.git` there is a FILE holding a `gitdir:` pointer, not
 # a directory — install used to test for the directory and refuse the tree as no
