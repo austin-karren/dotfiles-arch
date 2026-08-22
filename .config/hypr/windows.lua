@@ -113,3 +113,48 @@ o.window({ tag = "chromium-based-browser", initial_title = "^Meet - .+" }, {
   size = { "window_w", "window_h" },
   keep_aspect_ratio = false,
 })
+
+-- Steam: size the client as a fraction of the monitor, not in pixels ----------
+--
+-- Upstream (default/hypr/apps/steam.lua) sizes the main window with
+-- `size = { 1100, 700 }`. That rule is not broken - it fires, centered, on
+-- every launch - but 1100x700 is a constant tuned for a ~1080p screen. On this
+-- 2304x1536 logical desktop (DP-2, 3840x2560 at scale 1.6666666) it is 48% x
+-- 46%: a postage stamp on a 27" 4K panel. Resizing it by hand then overshoots -
+-- observed at 2420 logical px wide against a 2304 px screen, hanging 116px off
+-- the right edge with the grab handles, which is the "can't interact with it"
+-- trap.
+--
+-- 4/5 x 4/5 is 1843x1229. Both axes take the SAME fraction on purpose: that
+-- makes the frame a proportional shrink of the desktop rather than an aspect
+-- ratio picked by eye. The margin it leaves is real - the usable area is
+-- 2304x1510 after the bar's 26px reservation, and a tiled window's outer box
+-- is 2288x1494 after gaps_out 8 - so at 1843x1229 the client sits ~230px clear
+-- of each side and ~140px clear of top and bottom, well inside the screen on
+-- every axis.
+--
+-- Mechanism is the same rule-EXPRESSION grammar the calendar rule above uses,
+-- and for the same reason: the grammar has NO percent syntax (`"80%"` hits
+-- "failed to parse expression" and the size effect is dropped SILENTLY, with
+-- `hyprctl configerrors` still clean), and its only variables are monitor_w,
+-- monitor_h, window_w, window_h, cursor_x, cursor_y - verified against the
+-- v0.56.2 binary. So the fraction is written as plain arithmetic. Expressions
+-- evaluate at map time against the window's own monitor, so nothing here is
+-- pixel-pinned to this display.
+--
+-- `size` only, no `center` and no `float`: upstream's own two rules already set
+-- both, they are separate effects, and a later size-only rule overrides just
+-- the size while centering recomputes from the new size (the calendar rule
+-- above proves the ordering - float/center/size as three rules land correctly).
+-- Steam stays FLOATING deliberately. Tiling it was tested and rejected: a
+-- tiled Steam client forces games into exclusive fullscreen to hold keyboard
+-- focus, and most games now default to windowed-fullscreen, which trades one
+-- small annoyance for a per-game one.
+--
+-- This does NOT stop a manual resize past the screen edge - `size` is a static
+-- rule, applied once at map. `maxsize` would clamp it; it is left out here
+-- rather than stacked on speculation. See report-steamsize.md.
+--
+-- Only the main client window. Upstream's `Sign in to Steam` (transient, uses
+-- Steam's own 840x528) and `Friends List` (460x800) rules are left alone.
+o.window({ class = "steam", title = "Steam" }, { size = { "(monitor_w*4/5)", "(monitor_h*4/5)" } })
